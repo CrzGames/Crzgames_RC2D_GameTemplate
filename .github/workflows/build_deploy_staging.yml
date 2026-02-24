@@ -46,13 +46,9 @@ env:
   APP_MACOS_CODE_SIGN_IDENTITY: "Developer ID Application: Corentin Recanzone (U3D28WJ8DV)"
 
   ###### IOS ######
-  # Certificat Apple au format p12 encodé en base64 
-  IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64: ${{ secrets.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64 }}
-  # Mot de passe du certificat p12
-  IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_PASSWORD: ${{ secrets.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_PASSWORD }}
   # Profil de provisionnement Apple au format : .mobileprovision (iOS) ou .provisionprofile (macOS) encodé en base64
   # TODO: A modifier pour chaque nouvelle application iOS pour : secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64
-  IOSMACOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_BASE64: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }}
+  IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }}
   # Mot de passe spécifique à l'application pour l'identifiant Apple, nécessaire pour l'upload sur App Store Connect via altool ou Fastlane
   APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APPLICATION_SPECIFIC_PASSWORD }}
   # Variables pour l'API App Store Connect, nécessaires pour l'upload sur App Store Connect via Fastlane (recommandé)
@@ -61,6 +57,10 @@ env:
   APPLE_APPSTORECONNECT_API_KEY_P8_BASE64: ${{ secrets.APPLE_APPSTORECONNECT_API_KEY_P8_BASE64 }}
   
   ###### iOS / macOS - Commun ######
+  # Certificat Apple au format p12 encodé en base64 
+  IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64: ${{ secrets.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64 }}
+  # Mot de passe du certificat p12
+  IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_PASSWORD: ${{ secrets.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_PASSWORD }}
   # Un nouveau trousseau sera créé sur le coureur, de sorte que le mot de passe du nouveau trousseau peut être n'importe quelle nouvelle chaîne aléatoire
   KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
   # Identifiant (Email) du compte développeur Apple
@@ -296,7 +296,7 @@ jobs:
 
           # import certificate and provisioning profile from secrets
           echo -n "${{ env.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64 }}" | base64 --decode -o $CERTIFICATE_PATH
-          echo -n "${{ env.IOSMACOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_BASE64 }}" | base64 --decode -o $PP_PATH
+          echo -n "${{ env.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }}" | base64 --decode -o $PP_PATH
 
           # create temporary keychain
           security create-keychain -p "${{ env.KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH
