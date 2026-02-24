@@ -1,3 +1,7 @@
+def ksPass = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+def ksAlias = System.getenv("ANDROID_KEYSTORE_ALIAS_NAME")
+def ksKeyPass = System.getenv("ANDROID_KEYSTORE_KEY_PASSWORD")
+
 plugins {
      id 'com.android.application'
 }
@@ -24,18 +28,19 @@ android {
     }
     signingConfigs {
         release {
-            // le fichier généré par la CI
-            storeFile file("../../my-release-key.keystore")
-
-            // secrets injectés en env par GitHub Actions
-            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            keyAlias System.getenv("ANDROID_KEYSTORE_ALIAS_NAME")
-            keyPassword System.getenv("ANDROID_KEYSTORE_KEY_PASSWORD")
+            if (ksPass && ksAlias && ksKeyPass) {
+                storeFile rootProject.file("../my-release-key.keystore")
+                storePassword ksPass
+                keyAlias ksAlias
+                keyPassword ksKeyPass
+            }
         }
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (ksPass && ksAlias && ksKeyPass) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

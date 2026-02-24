@@ -482,9 +482,31 @@ jobs:
         if: matrix.config.platform == 'macos'
         run: zip -r --symlinks build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/MyApp.zip build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.app
 
-      - name: Submit app for notarization - macOS
+      - name: Submit app for notarization + print log if invalid - macOS
         if: matrix.config.platform == 'macos'
-        run: xcrun notarytool submit build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/MyApp.zip --wait --keychain-profile login
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ZIP_PATH="build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/MyApp.zip"
+
+          echo "Submitting notarization for: $ZIP_PATH"
+          OUT="$(xcrun notarytool submit "$ZIP_PATH" --wait --keychain-profile login --output-format json)"
+          echo "$OUT"
+
+          ID="$(echo "$OUT" | python -c 'import sys,json; print(json.load(sys.stdin)["id"])')"
+          STATUS="$(echo "$OUT" | python -c 'import sys,json; print(json.load(sys.stdin)["status"])')"
+
+          echo "Notary submission id: $ID"
+          echo "Notary status: $STATUS"
+
+          if [[ "$STATUS" != "Accepted" ]]; then
+            echo "❌ Notarization failed -> fetching log..."
+            xcrun notarytool log "$ID" --keychain-profile login || true
+            exit 1
+          fi
+
+          echo "✅ Notarization accepted"
 
       - name: Staple the notarization ticket - macOS
         if: matrix.config.platform == 'macos'
