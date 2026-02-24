@@ -503,7 +503,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
 
       - name: Read version from artifact variables.env - Windows / Linux / Android / HTML5
         # On'as besoin de la version pour l'étape de déploiement via Minio
