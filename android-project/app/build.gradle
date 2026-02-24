@@ -1,10 +1,10 @@
-def ksPass = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-def ksAlias = System.getenv("ANDROID_KEYSTORE_ALIAS_NAME")
-def ksKeyPass = System.getenv("ANDROID_KEYSTORE_KEY_PASSWORD")
-
 plugins {
      id 'com.android.application'
 }
+
+def ksPass = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+def ksAlias = System.getenv("ANDROID_KEYSTORE_ALIAS_NAME")
+def ksKeyPass = System.getenv("ANDROID_KEYSTORE_KEY_PASSWORD")
 
 def buildWithCMake = project.hasProperty('BUILD_WITH_CMAKE');
 
