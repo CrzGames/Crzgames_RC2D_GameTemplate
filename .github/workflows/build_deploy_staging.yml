@@ -359,7 +359,7 @@ jobs:
         with:
           build-dir: build-${{ matrix.config.platform }}-${{ matrix.config.arch }}
           generator: Xcode
-          options: CMAKE_SYSTEM_NAME=iOS
+          options: CMAKE_SYSTEM_NAME=iOS GAME_BUILD_APPLE_CODE_SIGNING=ON
 
       - name: Run build with CMake - iOS (iphoneos)
         if: matrix.config.platform == 'ios'
@@ -453,7 +453,7 @@ jobs:
           generator: Xcode
           c-compiler: clang
           cxx-compiler: clang++
-          options: CMAKE_SYSTEM_NAME=Darwin
+          options: CMAKE_SYSTEM_NAME=Darwin GAME_BUILD_APPLE_CODE_SIGNING=ON
           # A voir si on supprime ou pas : CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO
           
       - name: Run build with CMake - macOS (arm64)
