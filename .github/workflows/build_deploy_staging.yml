@@ -43,7 +43,7 @@ env:
   # Cela sert pour le CMakelists.txt
   APP_IOS_CODE_SIGN_IDENTITY: "Apple Development: Corentin Recanzone (U3D28WJ8DV)" # On met Apple Development parce que l'application iOS (testexe) et un cas de teest
   # Cela sert pour le CMakelists.txt
-  APP_MACOS_CODE_SIGN_IDENTITY: "Developer ID Application: Corentin Recanzone (2X96T6AM4K)"
+  APP_MACOS_CODE_SIGN_IDENTITY: "Developer ID Application: Corentin Recanzone (U3D28WJ8DV)"
 
   ###### IOS ######
   # Certificat Apple au format p12 encodé en base64 
