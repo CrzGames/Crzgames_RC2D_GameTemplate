@@ -275,6 +275,9 @@ jobs:
           ./gradlew bundleRelease
         working-directory: android-project
         env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEYSTORE_ALIAS_NAME: ${{ secrets.ANDROID_KEYSTORE_ALIAS_NAME }}
+          ANDROID_KEYSTORE_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
           ANDROID_VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
           ANDROID_VERSION_NAME: ${{ env.ANDROID_VERSION_NAME }}
 
@@ -438,8 +441,8 @@ jobs:
           cxx-compiler: g++
           options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }} RC2D_PLATFORM=STEAMRT4
 
-      - name: CMake Install for generate AppImage - Linux (x64/arm64) / SteamRT4 (x64/arm64)
-        if: matrix.config.platform == 'linux' || matrix.config.platform == 'steamrt4'
+      - name: CMake Install for generate AppImage - Linux (x64/arm64)
+        if: matrix.config.platform == 'linux'
         run: cmake --install build-${{ matrix.config.platform }}-${{ matrix.config.arch }}
 
       - name: Configure project with CMake - macOS (arm64)
@@ -542,6 +545,8 @@ jobs:
         with:
           name: ${{ matrix.config.platform }}-${{ matrix.config.arch }}
           retention-days: 1
+          path: |
+            build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/*
 
       - name: Archive executable artifacts - Windows
         if: matrix.config.platform == 'windows'
