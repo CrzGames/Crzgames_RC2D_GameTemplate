@@ -28,6 +28,10 @@ android {
     }
     signingConfigs {
         release {
+            def ksPass = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            def ksAlias = System.getenv("ANDROID_KEYSTORE_ALIAS_NAME")
+            def ksKeyPass = System.getenv("ANDROID_KEYSTORE_KEY_PASSWORD")
+
             if (ksPass && ksAlias && ksKeyPass) {
                 storeFile rootProject.file("../my-release-key.keystore")
                 storePassword ksPass
