@@ -267,6 +267,16 @@ jobs:
         if: matrix.config.platform == 'android'
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > my-release-key.keystore
 
+      - name: Check Android signing env presence (no leak)
+        if: matrix.config.platform == 'android'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_KEYSTORE_PASSWORD:-}" || (echo "ANDROID_KEYSTORE_PASSWORD is missing" && exit 1)
+          test -n "${ANDROID_KEYSTORE_ALIAS_NAME:-}" || (echo "ANDROID_KEYSTORE_ALIAS_NAME is missing" && exit 1)
+          test -n "${ANDROID_KEYSTORE_KEY_PASSWORD:-}" || (echo "ANDROID_KEYSTORE_KEY_PASSWORD is missing" && exit 1)
+          echo "✅ Android signing env vars are present"
+
       - name: Generate APK / AAB and Sign - Android 
         if: matrix.config.platform == 'android'
         run: |
@@ -450,8 +460,7 @@ jobs:
           generator: Xcode
           c-compiler: clang
           cxx-compiler: clang++
-          options: CMAKE_SYSTEM_NAME=Darwin GAME_BUILD_APPLE_CODE_SIGNING=ON
-          # A voir si on supprime ou pas : CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO
+          options: CMAKE_SYSTEM_NAME=Darwin GAME_BUILD_APPLE_CODE_SIGNING=ON CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO
           
       - name: Run build with CMake - macOS (arm64)
         if: matrix.config.platform == 'macos'
