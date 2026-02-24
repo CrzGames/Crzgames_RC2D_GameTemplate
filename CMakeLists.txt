@@ -176,12 +176,14 @@ file(GLOB_RECURSE HEADERS
 #
 # ============================================================
 if(ANDROID)
-  add_library(main SHARED 
+  set(APP_TARGET main)
+  add_library(${APP_TARGET} SHARED 
     ${SOURCES} 
     ${HEADERS}
   )
 else()
-  add_executable(${PROJECT_NAME} 
+  set(APP_TARGET ${PROJECT_NAME})
+  add_executable(${APP_TARGET} 
     ${SOURCES} 
     ${HEADERS}
   )
@@ -193,7 +195,7 @@ endif()
 # Définit les répertoires de sortie pour les binaires de l'exécutable, 
 # en fonction de la configuration (Debug/Release).
 # ============================================================
-set_target_properties(${PROJECT_NAME} PROPERTIES
+set_target_properties(${APP_TARGET} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
 )
 
@@ -204,7 +206,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 # - Le dossier include du projet lui-même (pour les headers locaux)
 # - Le dossier de la bibliothèque cpp-httplib (pour les headers de cpp-httplib)
 # ============================================================
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(${APP_TARGET} PRIVATE
   "${PROJECT_SOURCE_DIR}/include"
   "${CRZGAMES_LIBHTTPLIB_PATH}"
 )
@@ -215,7 +217,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Lie la target de l’exécutable à la bibliothèque RC2D pour pouvoir 
 # utiliser le moteur de jeu dans le projet.
 # ============================================================
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(${APP_TARGET} PRIVATE
   rc2d
 )
 
@@ -636,16 +638,16 @@ endfunction()
 
 # Appeler les fonctions de configuration pour FFmpeg, ONNX Runtime et SDL3_shadercross 
 # pour copier les lib dynamiques nécessaires et configurer les outils de shadercross pour la compilation hors ligne des shaders.
-rc2d_configure_ffmpeg(${PROJECT_NAME})
-rc2d_configure_onnxruntime(${PROJECT_NAME})
-rc2d_configure_shadercross(${PROJECT_NAME})
+rc2d_configure_ffmpeg(${APP_TARGET})
+rc2d_configure_onnxruntime(${APP_TARGET})
+rc2d_configure_shadercross(${APP_TARGET})
 
 # ============================================================
 # Configurations spécifiques à chaque plateforme pour l’exécutable
 # ============================================================
 if (WIN32)
   # Définir l'executable comme une application Windows (pour éviter l'affichage de la console quand on ouvre l'executable) en mode Release
-  set_target_properties(${PROJECT_NAME} PROPERTIES 
+  set_target_properties(${APP_TARGET} PROPERTIES 
     WIN32_EXECUTABLE $<CONFIG:Release>
   )
 
@@ -704,20 +706,20 @@ if (WIN32)
     set_source_files_properties("${GENERATED_RC}" PROPERTIES LANGUAGE RC)
 
     # Et enfin, on ajoute ce fichier de ressources à la target de l’exemple pour qu’il soit compilé et lié à l’exécutable final.
-    target_sources(${PROJECT_NAME} PRIVATE "${GENERATED_RC}")
+    target_sources(${APP_TARGET} PRIVATE "${GENERATED_RC}")
 
     # Définir le projet de démarrage dans Visual Studio pour que l’exécutable de l’exemple soit celui qui se lance par défaut quand on appuie sur "Play" (F5)
-    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${APP_TARGET})
 
     # Définir le répertoire de travail pour le débogueur dans Visual Studio
     # Cela permet de lancer l'exécutable avec le bon répertoire de travail (working directory)
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-      VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+    set_target_properties(${APP_TARGET} PROPERTIES
+      VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${APP_TARGET}>"
     )
   endif()
 elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   # Ajouter le fichier d'icône de l'application dans les ressources de la target de l’exemple
-  target_sources(${PROJECT_NAME} PRIVATE
+  target_sources(${APP_TARGET} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/icons/macos/app-icon.icns"
   )
   set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/icons/macos/app-icon.icns" PROPERTIES 
@@ -725,7 +727,7 @@ elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   )
 
   # Ajouter les assets génériques (images, sons, etc.) dans les ressources du bundle pour qu'ils soient accessibles à l'exécution
-  target_sources(${PROJECT_NAME} PRIVATE
+  target_sources(${APP_TARGET} PRIVATE
     "${PROJECT_SOURCE_DIR}/assets"
   )
   set_source_files_properties("${PROJECT_SOURCE_DIR}/assets" PROPERTIES
@@ -734,7 +736,7 @@ elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
   # Ajouter le dossier shaders/compiled + shaders/reflection dans les ressources du bundle pour qu'ils soient accessibles à l'exécution
   # Contents/Resources/shaders/{compiled,reflection}
-  target_sources(${PROJECT_NAME} PRIVATE
+  target_sources(${APP_TARGET} PRIVATE
     "${PROJECT_SOURCE_DIR}/shaders/compiled"
     "${PROJECT_SOURCE_DIR}/shaders/reflection"
   )
@@ -746,9 +748,9 @@ elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   )
 
   # Configurez le bundle (.app)
-  set_target_properties(${PROJECT_NAME} PROPERTIES
+  set_target_properties(${APP_TARGET} PROPERTIES
     MACOSX_BUNDLE TRUE
-    MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME} # Nom de l'application (à modifier pour chaque application)
+    MACOSX_BUNDLE_BUNDLE_NAME ${APP_TARGET} # Nom de l'application (à modifier pour chaque application)
     MACOSX_BUNDLE_GUI_IDENTIFIER ${APP_IOSMACOS_IDENTIFIER} # L'identifiant de votre application (via identifiers sur le compte apple developer), à modifier pour chaque application
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION} # Version utilisateur lisible (à modifier pour chaque application)
     MACOSX_BUNDLE_BUNDLE_VERSION ${APP_IOSMACOS_BUILD_VERSION} # Version de build unique (à modifier pour chaque application)
@@ -760,7 +762,7 @@ elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   # --- Code signing (optionnel) ---
   if(GAME_BUILD_APPLE_CODE_SIGNING)
     # SIGNATURE ACTIVÉE
-    set_target_properties(${PROJECT_NAME} PROPERTIES
+    set_target_properties(${APP_TARGET} PROPERTIES
       XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ${APP_IOSMACOS_DEVELOPMENT_TEAM_ID} # Remplacez par votre Team ID Apple
       XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ${APP_MACOS_CODE_SIGN_IDENTITY} # Remplacez par votre identité de signature
       XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Manual" # Style de signature (Manual ou Automatic)
@@ -768,7 +770,7 @@ elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     )
   endif()
 
-  set_target_properties(${PROJECT_NAME} PROPERTIES
+  set_target_properties(${APP_TARGET} PROPERTIES
     # ---------------------------------------------------------------------------
     # macOS — RPATH pour les dépendances embarquées dans le bundle (.app)
     # Pour que les .dylib embarquées soient trouvées à l’exécution, il faut configurer le RPATH
@@ -811,8 +813,8 @@ elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   )
 
   # Ajoute une étape de post-build pour modifier le fichier Info.plist (macOS)
-  set(MACOS_INFO_PLIST "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/Contents/Info.plist")
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  set(MACOS_INFO_PLIST "$<TARGET_BUNDLE_DIR:${APP_TARGET}>/Contents/Info.plist")
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
     # ------------------------------------------------------------
     # Indirect input (souris / trackpad / clavier / manettes)
     # ------------------------------------------------------------
@@ -842,15 +844,15 @@ elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   )
 
   # Créer le dossier Contents/Frameworks dans le bundle .app pour y copier les .dylib embarquées (SDL3, SDL3_image, SDL3_ttf, SDL3_mixer, onnxruntime, SDL3_shadercross, etc.)
-  set(FRAMEWORKS_DIR "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/Contents/Frameworks")
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  set(FRAMEWORKS_DIR "$<TARGET_BUNDLE_DIR:${APP_TARGET}>/Contents/Frameworks")
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${FRAMEWORKS_DIR}"
     COMMENT "Create Contents/Frameworks in app bundle"
   )
 
   # Copier les .dylib générées dans le dossier Contents/Frameworks du bundle .app
   set(DYLIB_SOURCE_DIR "${CMAKE_BINARY_DIR}/$<CONFIG>")
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
     COMMAND /bin/sh -c "cp -a \"${DYLIB_SOURCE_DIR}\"/*.dylib \"${FRAMEWORKS_DIR}\"/ 2>/dev/null || true"
     COMMENT "Copy dylibs into Contents/Frameworks (cp -a keeps symlinks)"
     VERBATIM
@@ -861,7 +863,7 @@ elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
   set(IOS_LAUNCH_STORYBOARD "${CMAKE_CURRENT_SOURCE_DIR}/platforms/ios/LaunchScreen.storyboard")
 
   # Ajout à la target des ressources spécifiques à iOS (Asset Catalog et Storyboard de lancement)
-  target_sources(${PROJECT_NAME} PRIVATE
+  target_sources(${APP_TARGET} PRIVATE
     "${IOS_ASSETCATALOG}"
     "${IOS_LAUNCH_STORYBOARD}"
   )
@@ -877,7 +879,7 @@ elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
   )
 
   # Ajouter les assets génériques (images, sons, etc.) dans les ressources du bundle pour qu'ils soient accessibles à l'exécution
-  target_sources(${PROJECT_NAME} PRIVATE
+  target_sources(${APP_TARGET} PRIVATE
     "${PROJECT_SOURCE_DIR}/assets"
   )
   set_source_files_properties("${PROJECT_SOURCE_DIR}/assets" PROPERTIES
@@ -886,7 +888,7 @@ elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
 
   # Ajouter le dossier shaders/compiled + shaders/reflection dans les ressources du bundle pour qu'ils soient accessibles à l'exécution
   # Contents/Resources/shaders/{compiled,reflection}
-  target_sources(${PROJECT_NAME} PRIVATE
+  target_sources(${APP_TARGET} PRIVATE
     "${PROJECT_SOURCE_DIR}/shaders/compiled"
     "${PROJECT_SOURCE_DIR}/shaders/reflection"
   )
@@ -898,9 +900,9 @@ elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
   )
 
   # Configurez le bundle (.app)
-  set_target_properties(${PROJECT_NAME} PROPERTIES
+  set_target_properties(${APP_TARGET} PROPERTIES
     MACOSX_BUNDLE TRUE
-    MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME} # Nom de l'application (à modifier pour chaque application)
+    MACOSX_BUNDLE_BUNDLE_NAME ${APP_TARGET} # Nom de l'application (à modifier pour chaque application)
     MACOSX_BUNDLE_GUI_IDENTIFIER ${APP_IOSMACOS_IDENTIFIER} # L'identifiant de votre application (via identifiers sur le compte apple developer) à modifier pour chaque application
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION} # Version utilisateur lisible (à modifier pour chaque application)
     MACOSX_BUNDLE_BUNDLE_VERSION ${APP_IOSMACOS_BUILD_VERSION} # Version de build unique (à modifier pour chaque application)
@@ -913,7 +915,7 @@ elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
   # --- Code signing (optionnel) ---
   if(GAME_BUILD_APPLE_CODE_SIGNING)
     # SIGNATURE ACTIVÉE
-    set_target_properties(${PROJECT_NAME} PROPERTIES
+    set_target_properties(${APP_TARGET} PROPERTIES
       XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ${APP_IOSMACOS_DEVELOPMENT_TEAM_ID} # Remplacez par votre Team ID Apple
       XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ${APP_IOS_CODE_SIGN_IDENTITY} # Remplacez par votre identité de signature
       XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Manual" # Style de signature (Manual ou Automatic)
@@ -924,8 +926,8 @@ elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
   endif()
 
   # Ajoute une étape de post-build pour ajouter des clés au fichier Info.plist (iOS)
-  set(IOS_INFO_PLIST "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/Info.plist")
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  set(IOS_INFO_PLIST "$<TARGET_BUNDLE_DIR:${APP_TARGET}>/Info.plist")
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
     # ------------------------------------------------------------
     # Support souris / trackpad / clavier / manettes
     # ------------------------------------------------------------
@@ -980,7 +982,7 @@ elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
   )
 elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAMRT4")) # Linux "classique" (Ubuntu, Debian, Fedora, Arch, etc.) et Raspberry PI 5
   # Pour l'executable "classique" sur Linux (on ne parle pas de l'AppImage ici, mais rc2d-game-template)
-  set_target_properties(${PROJECT_NAME} PROPERTIES
+  set_target_properties(${APP_TARGET} PROPERTIES
     BUILD_RPATH "\$ORIGIN;\$ORIGIN/usr/lib"
     INSTALL_RPATH "\$ORIGIN;\$ORIGIN/usr/lib"
     BUILD_WITH_INSTALL_RPATH TRUE
@@ -1007,13 +1009,13 @@ elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAM
   #   build/linux/arm64/Release/AppDir
   # ------------------------------------------------------------
   set(APPDIR "${CMAKE_BINARY_DIR}/AppDir")
-  set(APPIMAGE_OUTPUT "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.AppImage")
+  set(APPIMAGE_OUTPUT "${CMAKE_BINARY_DIR}/${APP_TARGET}.AppImage")
 
   install(CODE
     "include(\"${CMAKE_CURRENT_SOURCE_DIR}/platforms/linux/appimage.cmake\")
     make_appimage(
-      EXE \"\$<TARGET_FILE:${PROJECT_NAME}>\"
-      NAME \"${PROJECT_NAME}\"
+      EXE \"\$<TARGET_FILE:${APP_TARGET}>\"
+      NAME \"${APP_TARGET}\"
       ICON \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\"
       DIR_ICON \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\"
       OUTPUT_NAME \"${APPIMAGE_OUTPUT}\"
@@ -1044,7 +1046,7 @@ elseif(RC2D_PLATFORM STREQUAL "STEAMRT4") # Steam Deck / Steam Linux
   #   Avec RPATH = $ORIGIN, le loader cherchera :
   #     ./libonnxruntime.so
   #
-  set_target_properties(${PROJECT_NAME} PROPERTIES
+  set_target_properties(${APP_TARGET} PROPERTIES
     BUILD_RPATH "\$ORIGIN"
     INSTALL_RPATH "\$ORIGIN"
     BUILD_WITH_INSTALL_RPATH TRUE
@@ -1069,43 +1071,43 @@ if(NOT ANDROID AND NOT APPLE)
   # ---------------------------------------------------------------------------
 
   # Créer le dossier shaders/ à côté de l'exe (même si compiled/reflection n'existent pas)
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders"
-    COMMENT "Prépare le dossier shaders/ à côté de ${PROJECT_NAME}"
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${APP_TARGET}>/shaders"
+    COMMENT "Prépare le dossier shaders/ à côté de ${APP_TARGET}"
     VERBATIM
   )
 
   # Copier shaders/compiled/ si présent
   if(EXISTS "${PROJECT_SOURCE_DIR}/shaders/compiled")
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders/compiled"
+    add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${APP_TARGET}>/shaders/compiled"
       COMMAND ${CMAKE_COMMAND} -E copy_directory
               "${PROJECT_SOURCE_DIR}/shaders/compiled"
-              "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders/compiled"
-      COMMENT "Copie shaders/compiled à côté de ${PROJECT_NAME}"
+              "$<TARGET_FILE_DIR:${APP_TARGET}>/shaders/compiled"
+      COMMENT "Copie shaders/compiled à côté de ${APP_TARGET}"
       VERBATIM
     )
   endif()
 
   # Copier shaders/reflection/ si présent
   if(EXISTS "${PROJECT_SOURCE_DIR}/shaders/reflection")
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders/reflection"
+    add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${APP_TARGET}>/shaders/reflection"
       COMMAND ${CMAKE_COMMAND} -E copy_directory
               "${PROJECT_SOURCE_DIR}/shaders/reflection"
-              "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders/reflection"
-      COMMENT "Copie shaders/reflection à côté de ${PROJECT_NAME}"
+              "$<TARGET_FILE_DIR:${APP_TARGET}>/shaders/reflection"
+      COMMENT "Copie shaders/reflection à côté de ${APP_TARGET}"
       VERBATIM
     )
   endif()
 
   # Assets génériques (images, sons, etc.) :
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${APP_TARGET}>/assets"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${PROJECT_SOURCE_DIR}/assets"
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
-    COMMENT "Copie du dossier assets dans le dossier de build de ${PROJECT_NAME}"
+            "$<TARGET_FILE_DIR:${APP_TARGET}>/assets"
+    COMMENT "Copie du dossier assets dans le dossier de build de ${APP_TARGET}"
     VERBATIM
   )
 endif()
@@ -1114,9 +1116,9 @@ endif()
 # Linux / SteamRT4 — Rendre l'exécutable exécutable via chmod
 # ============================================================ 
 if(UNIX AND NOT APPLE AND NOT ANDROID) # Linux et SteamRT4
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND chmod +x "$<TARGET_FILE:${PROJECT_NAME}>"
-    COMMENT "Rendre ${PROJECT_NAME} exécutable"
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND chmod +x "$<TARGET_FILE:${APP_TARGET}>"
+    COMMENT "Rendre ${APP_TARGET} exécutable"
     VERBATIM
   )
 endif()
