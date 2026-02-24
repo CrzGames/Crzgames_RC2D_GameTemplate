@@ -192,12 +192,19 @@ endif()
 # ============================================================
 # Output Directories
 # ============================================================
-# Définit les répertoires de sortie pour les binaires de l'exécutable, 
-# en fonction de la configuration (Debug/Release).
+# Gestion du dossier de sortie selon le générateur CMake :
+# - Visual Studio / Xcode : multi-config (Debug/Release/...)
+# - Ninja / Makefiles     : single-config
 # ============================================================
-set_target_properties(${APP_TARGET} PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
-)
+if(CMAKE_GENERATOR MATCHES "Visual Studio|Xcode")
+  # Multi-config generators
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
+else()
+  # Single-config generators (Makefiles, Ninja, etc.)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif()
 
 # ============================================================
 # Include directories pour l’exécutable
