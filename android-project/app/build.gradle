@@ -13,8 +13,8 @@ android {
         applicationId "com.crzgames.testexe"
         minSdkVersion 28
         targetSdkVersion 36
-        versionCode 1
-        versionName "1.0"
+        versionCode (System.getenv("ANDROID_VERSION_CODE") ?: "1").toInteger()
+        versionName (System.getenv("ANDROID_VERSION_NAME") ?: "1.0.0")
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_PLATFORM=android-28", "-DANDROID_STL=c++_static"
@@ -22,8 +22,20 @@ android {
             }
         }
     }
+    signingConfigs {
+        release {
+            // le fichier généré par la CI
+            storeFile file("../../my-release-key.keystore")
+
+            // secrets injectés en env par GitHub Actions
+            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias System.getenv("ANDROID_KEYSTORE_ALIAS_NAME")
+            keyPassword System.getenv("ANDROID_KEYSTORE_KEY_PASSWORD")
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

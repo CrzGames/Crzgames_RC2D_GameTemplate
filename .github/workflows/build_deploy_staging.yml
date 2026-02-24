@@ -275,9 +275,6 @@ jobs:
           ./gradlew bundleRelease
         working-directory: android-project
         env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEYSTORE_ALIAS_NAME: ${{ secrets.ANDROID_KEYSTORE_ALIAS_NAME }}
-          ANDROID_KEYSTORE_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
           ANDROID_VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
           ANDROID_VERSION_NAME: ${{ env.ANDROID_VERSION_NAME }}
 
