@@ -165,15 +165,15 @@ for /R "app\build\outputs" %%F in (*release*.apk) do (
 )
 
 if defined APK_DEBUG (
-  copy /Y "!APK_DEBUG!" "%OUT_APK_BASE%\Debug\rc2d-debug.apk" >nul
-  echo APK Debug  -> %OUT_APK_BASE%\Debug\rc2d-debug.apk
+  copy /Y "!APK_DEBUG!" "%OUT_APK_BASE%\Debug\rc2d-game-template-debug.apk" >nul
+  echo APK Debug  -> %OUT_APK_BASE%\Debug\rc2d-game-template-debug.apk
 ) else (
   echo ^(warn^) Aucun APK Debug trouvé dans app\build\outputs\
 )
 
 if defined APK_RELEASE (
-  copy /Y "!APK_RELEASE!" "%OUT_APK_BASE%\Release\rc2d-release.apk" >nul
-  echo APK Release -> %OUT_APK_BASE%\Release\rc2d-release.apk
+  copy /Y "!APK_RELEASE!" "%OUT_APK_BASE%\Release\rc2d-game-template-release.apk" >nul
+  echo APK Release -> %OUT_APK_BASE%\Release\rc2d-game-template-release.apk
 ) else (
   echo ^(warn^) Aucun APK Release trouvé dans app\build\outputs\
 )
@@ -190,92 +190,15 @@ for /R "app\build\outputs" %%F in (*release*.aab) do (
 )
 
 if defined AAB_DEBUG (
-  copy /Y "!AAB_DEBUG!" "%OUT_AAB_BASE%\Debug\rc2d-debug.aab" >nul
-  echo AAB Debug  -> %OUT_AAB_BASE%\Debug\rc2d-debug.aab
+  copy /Y "!AAB_DEBUG!" "%OUT_AAB_BASE%\Debug\rc2d-game-template-debug.aab" >nul
+  echo AAB Debug  -> %OUT_AAB_BASE%\Debug\rc2d-game-template-debug.aab
 ) else (
   echo ^(warn^) Aucun AAB Debug trouvé dans app\build\outputs\
 )
 
 if defined AAB_RELEASE (
-  copy /Y "!AAB_RELEASE!" "%OUT_AAB_BASE%\Release\rc2d-release.aab" >nul
-  echo AAB Release -> %OUT_AAB_BASE%\Release\rc2d-release.aab
+  copy /Y "!AAB_RELEASE!" "%OUT_AAB_BASE%\Release\rc2d-game-template-release.aab" >nul
+  echo AAB Release -> %OUT_AAB_BASE%\Release\rc2d-game-template-release.aab
 ) else (
   echo ^(warn^) Aucun AAB Release trouvé dans app\build\outputs\
 )
-
-REM --------------------------------------------------
-REM Revenir à la racine pour chercher les libs .a dans app\.cxx
-REM --------------------------------------------------
-popd
-
-REM --------------------------------------------------
-REM Trouver les libs statiques générées par CMake via AGP :
-REM android-project\app\.cxx\<Config>\<hash>\<abi>\librc2d_static.a
-REM --------------------------------------------------
-
-REM ---- Debug ----
-set "CXX_DIR_DEBUG=%ANDROID_PROJECT%\app\.cxx\Debug"
-for /D %%H in ("%CXX_DIR_DEBUG%\*") do (
-  if exist "%%H\arm64-v8a\librc2d_static.a" set "SRC_DEBUG_ARM64=%%H\arm64-v8a\librc2d_static.a"
-  if exist "%%H\armeabi-v7a\librc2d_static.a" set "SRC_DEBUG_ARM32=%%H\armeabi-v7a\librc2d_static.a"
-)
-
-REM ---- Release (souvent RelWithDebInfo) ----
-set "CXX_DIR_RELEASE=%ANDROID_PROJECT%\app\.cxx\RelWithDebInfo"
-for /D %%H in ("%CXX_DIR_RELEASE%\*") do (
-  if exist "%%H\arm64-v8a\librc2d_static.a" set "SRC_REL_ARM64=%%H\arm64-v8a\librc2d_static.a"
-  if exist "%%H\armeabi-v7a\librc2d_static.a" set "SRC_REL_ARM32=%%H\armeabi-v7a\librc2d_static.a"
-)
-
-REM --------------------------------------------------
-REM Vérifs sources
-REM --------------------------------------------------
-if not defined SRC_DEBUG_ARM64 call :die "librc2d_static.a introuvable pour Debug arm64-v8a dans %CXX_DIR_DEBUG%"
-if not defined SRC_DEBUG_ARM32 call :die "librc2d_static.a introuvable pour Debug armeabi-v7a dans %CXX_DIR_DEBUG%"
-if not defined SRC_REL_ARM64 call :die "librc2d_static.a introuvable pour Release^(RelWithDebInfo^) arm64-v8a dans %CXX_DIR_RELEASE%"
-if not defined SRC_REL_ARM32 call :die "librc2d_static.a introuvable pour Release^(RelWithDebInfo^) armeabi-v7a dans %CXX_DIR_RELEASE%"
-
-REM --------------------------------------------------
-REM Créer les dossiers de sortie :
-REM build\android\<ABI>\Debug\
-REM build\android\<ABI>\Release\
-REM --------------------------------------------------
-mkdir "%OUT_BASE%\arm64-v8a\Debug" 2>nul
-mkdir "%OUT_BASE%\armeabi-v7a\Debug" 2>nul
-mkdir "%OUT_BASE%\arm64-v8a\Release" 2>nul
-mkdir "%OUT_BASE%\armeabi-v7a\Release" 2>nul
-
-REM --------------------------------------------------
-REM Copier les .a
-REM --------------------------------------------------
-copy /Y "%SRC_DEBUG_ARM64%" "%OUT_BASE%\arm64-v8a\Debug\librc2d_static.a" >nul || exit /b 1
-copy /Y "%SRC_DEBUG_ARM32%" "%OUT_BASE%\armeabi-v7a\Debug\librc2d_static.a" >nul || exit /b 1
-copy /Y "%SRC_REL_ARM64%" "%OUT_BASE%\arm64-v8a\Release\librc2d_static.a" >nul || exit /b 1
-copy /Y "%SRC_REL_ARM32%" "%OUT_BASE%\armeabi-v7a\Release\librc2d_static.a" >nul || exit /b 1
-
-echo.
-echo ==================================================
-echo Lib RC2D static Android generated successfully.
-echo ==================================================
-echo Outputs (.a):
-echo   %OUT_BASE%\arm64-v8a\Debug\librc2d_static.a
-echo   %OUT_BASE%\armeabi-v7a\Debug\librc2d_static.a
-echo   %OUT_BASE%\arm64-v8a\Release\librc2d_static.a  ^(built as RelWithDebInfo^)
-echo   %OUT_BASE%\armeabi-v7a\Release\librc2d_static.a ^(built as RelWithDebInfo^)
-echo Outputs (APK):
-echo   %OUT_BASE%\apk\Debug\rc2d-debug.apk
-echo   %OUT_BASE%\apk\Release\rc2d-release.apk
-echo Outputs (AAB):
-echo   %OUT_BASE%\aab\Debug\rc2d-debug.aab
-echo   %OUT_BASE%\aab\Release\rc2d-release.aab
-echo.
-
-exit /b 0
-
-REM --------------------------------------------------
-REM Helpers
-REM --------------------------------------------------
-:die
-echo.
-echo [ERROR] %~1
-exit /b 1
