@@ -41,7 +41,7 @@ env:
   # Cela sert pour le CMakelists.txt
   APP_IOS_PROVISIONING_PROFILE_UUID: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_UUID }}
   # Cela sert pour le CMakelists.txt
-  APP_IOS_CODE_SIGN_IDENTITY: "Apple Distribution: Corentin Recanzone (2X96T6AM4K)"
+  APP_IOS_CODE_SIGN_IDENTITY: "Apple Development: Corentin Recanzone (2X96T6AM4K)" # On met Apple Development parce que l'application iOS (testexe) et un cas de teest
   # Cela sert pour le CMakelists.txt
   APP_MACOS_CODE_SIGN_IDENTITY: "Developer ID Application: Corentin Recanzone (2X96T6AM4K)"
 
