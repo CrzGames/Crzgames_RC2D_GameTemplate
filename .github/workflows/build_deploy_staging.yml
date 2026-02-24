@@ -93,7 +93,7 @@ jobs:
         - { runner: ubuntu-latest,    platform: steamrt4, arch: x64, container: "registry.gitlab.steamos.cloud/steamrt/steamrt4/sdk:4.0.20260119.200228" }
         - { runner: ubuntu-24.04-arm, platform: steamrt4, arch: arm64,  container: "registry.gitlab.steamos.cloud/steamrt/steamrt4/sdk/arm64:4.0.20260119.200228" }
         - { runner: windows-2025,     platform: windows,  arch: x64 }
-        - { runner: windows-2025,     platform: windows,  arch: arm64 }
+        - { runner: windows-11-arm,   platform: windows,  arch: arm64 }
         - { runner: ubuntu-22.04,     platform: linux,    arch: x64 }
         - { runner: ubuntu-22.04-arm, platform: linux,    arch: arm64 }
         - { runner: ubuntu-latest,    platform: android,  arch: "armeabi-v7a,arm64-v8a" }
@@ -105,6 +105,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Get dependencies with CMake - All platforms
+        run: cmake -P cmake/setup_dependencies.cmake
 
       - name: Read current version from version.txt and append branch and commit hash - Windows
         if: matrix.config.platform == 'windows'
@@ -212,6 +215,19 @@ jobs:
         with:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Android SDK (Platform + Build Tools + NDK + CMake + CLI) - Android
+        if: matrix.config.platform == 'android'
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+          packages: >
+            platform-tools
+            platforms;${{ env.ANDROID_PLATFORM_VERSION }}
+            build-tools;${{ env.ANDROID_BUILD_TOOLS_VERSION }}
+            ndk;${{ env.ANDROID_NDK_VERSION }}
+            cmake;${{ env.ANDROID_CMAKE_VERSION }}
+            cmdline-tools;${{ env.ANDROID_CMDLINE_TOOLS_VERSION }}
           
       - name: Decode Keystore and create file .keystore for Sign APK/AAB after - Android
         if: matrix.config.platform == 'android'
