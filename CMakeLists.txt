@@ -44,7 +44,7 @@ set(RC2D_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 # ============================================================
 # Build Options Game Template
 # ============================================================
-set(GAME_BUILD_APPLE_CODE_SIGNING OFF CACHE BOOL "Activer la signature de code pour les builds Apple (macOS/iOS)" FORCE)
+set(GAME_BUILD_APPLE_CODE_SIGNING "Activer ou désactiver le code signing pour les builds Apple (iOS/macOS)." OFF)
 
 # ============================================================
 # Application Metadata
