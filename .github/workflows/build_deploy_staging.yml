@@ -219,9 +219,6 @@ jobs:
           name: variables-apple
           path: variables-apple.env
 
-      - name: Print the version of the app - All platforms
-        run: echo "The final app version is $APP_VERSION"
-
       - name: Install dependencies for AppImage - Linux
         if: matrix.config.platform == 'linux'
         run: |
