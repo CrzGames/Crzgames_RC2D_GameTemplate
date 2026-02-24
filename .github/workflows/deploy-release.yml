@@ -1,4 +1,4 @@
-name: test_deploy-release
+name: deploy-release
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Deploy PR (main) for new Release
         uses: googleapis/release-please-action@v4

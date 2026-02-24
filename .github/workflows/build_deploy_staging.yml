@@ -58,7 +58,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Read current version from version.txt and append branch and commit hash - Windows
         if: matrix.target == 'windows'
@@ -113,7 +113,7 @@ jobs:
       - name: Upload version in Artifacts - Windows / Linux / Android / HTML5
         # On execute cette étape que sur Linux parce que c'est la même version pour Windows, Android et HTML5
         if: matrix.target == 'linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: variables
           path: variables.env
@@ -128,7 +128,7 @@ jobs:
       - name: Upload version and identifier in Artifacts - macOS / iOS
         # On execute cette étape que sur macOS parce que c'est la même version pour macOS et iOS
         if: matrix.target == 'macos'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: variables-apple
           path: variables-apple.env
@@ -350,7 +350,7 @@ jobs:
 
       - name: Sign files with AzureSignTool - Windows (x64/x86)
         if: matrix.platform == 'windows-latest'
-        uses: CrzGames/azure-signtool-action@v1.0.1
+        uses: CrzGames/azure-signtool-action@v1.1.0
         with:
           azure-key-vault-url: 'https://signmycodecertificates.vault.azure.net'
           azure-key-vault-client-id: ${{ secrets.AZURE_KEY_VAULT_APP_CLIENT_ID }}
@@ -439,7 +439,7 @@ jobs:
 
       - name: Archive executable artifacts - Android
         if: matrix.target == 'android'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.target }}
           retention-days: 1
@@ -447,7 +447,7 @@ jobs:
 
       - name: Archive executable artifacts - iOS
         if: matrix.target == 'ios'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.target }}-${{ matrix.arch }}
           retention-days: 1
@@ -456,7 +456,7 @@ jobs:
 
       - name: Archive executable artifacts - macOS
         if: matrix.target == 'macos'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.target }}-${{ matrix.arch }}
           retention-days: 1
@@ -464,7 +464,7 @@ jobs:
 
       - name: Archive executable artifacts - Linux
         if: matrix.target == 'linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.target }}-${{ matrix.arch }}
           retention-days: 1
@@ -473,7 +473,7 @@ jobs:
 
       - name: Archive executable artifacts - Windows
         if: matrix.platform == 'windows-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.target }}-${{ matrix.arch }}
           retention-days: 1
@@ -482,7 +482,7 @@ jobs:
 
       - name: Archive executable artifacts - HTML5
         if: matrix.target == 'html5'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.target }}
           retention-days: 1
@@ -500,10 +500,10 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
 
       - name: Read version from artifact variables.env - Windows / Linux / Android / HTML5
         # On'as besoin de la version pour l'étape de déploiement via Minio
