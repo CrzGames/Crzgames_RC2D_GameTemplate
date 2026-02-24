@@ -47,16 +47,6 @@ set(RC2D_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GAME_BUILD_APPLE_CODE_SIGNING OFF CACHE BOOL "Activer la signature de code pour les builds Apple (macOS/iOS)" FORCE)
 
 # ============================================================
-# Output Directories
-# ============================================================
-# Définit les répertoires de sortie pour les binaires de l'exécutable, 
-# en fonction de la configuration (Debug/Release).
-# ============================================================
-set_target_properties(${PROJECT_NAME} PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
-)
-
-# ============================================================
 # Application Metadata
 #
 # Définit les métadonnées de l'application (version, nom de l'entreprise, description, droits d'auteur, etc.)
@@ -196,6 +186,16 @@ else()
     ${HEADERS}
   )
 endif()
+
+# ============================================================
+# Output Directories
+# ============================================================
+# Définit les répertoires de sortie pour les binaires de l'exécutable, 
+# en fonction de la configuration (Debug/Release).
+# ============================================================
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
+)
 
 # ============================================================
 # Include directories pour l’exécutable
