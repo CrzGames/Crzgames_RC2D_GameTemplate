@@ -17,7 +17,7 @@ android {
         applicationId "com.crzgames.testexe"
         minSdkVersion 28
         targetSdkVersion 36
-        versionCode (System.getenv("ANDROID_VERSION_CODE") ?: "1").toInteger()
+        versionCode = System.getenv("ANDROID_VERSION_CODE")?.toInteger() ?: 1
         versionName (System.getenv("ANDROID_VERSION_NAME") ?: "1.0.0")
         externalNativeBuild {
             cmake {
@@ -28,10 +28,6 @@ android {
     }
     signingConfigs {
         release {
-            def ksPass = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            def ksAlias = System.getenv("ANDROID_KEYSTORE_ALIAS_NAME")
-            def ksKeyPass = System.getenv("ANDROID_KEYSTORE_KEY_PASSWORD")
-
             if (ksPass && ksAlias && ksKeyPass) {
                 storeFile rootProject.file("../my-release-key.keystore")
                 storePassword ksPass
