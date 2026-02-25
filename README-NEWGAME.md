@@ -285,3 +285,12 @@ project(rc2d-game-template
   LANGUAGES C CXX
 )
 ```
+
+<br /><br />
+
+---
+
+<br /><br />
+
+# Dossier include du jeu
+De base le nom du dossier include c'est "amoredtactics" changer par le nom du nouveau jeu, et modifier les include dans les fichiers .cpp/.h déjà présent.
