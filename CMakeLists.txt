@@ -549,6 +549,7 @@ function(rc2d_configure_shader_pipeline target_name)
       OUTPUT "${_stage_stamp}.unixfix"
       DEPENDS "${_stage_stamp}"
       COMMAND chmod +x "${SHADER_TOOLS_DIR}/shadercross" || true
+      COMMAND patchelf --set-rpath '$ORIGIN' "${SHADER_TOOLS_DIR}/shadercross" || true
       COMMAND ${CMAKE_COMMAND} -E touch "${_stage_stamp}.unixfix"
       VERBATIM
     )
