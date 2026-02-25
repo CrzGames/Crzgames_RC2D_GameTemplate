@@ -352,21 +352,30 @@ endfunction()
 function(rc2d_configure_shadercross target_name)
   if(RC2D_GPU_SHADER_HOT_RELOAD_ENABLED)
     if (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin") # macOS
-      # Copier aussi les dylibs dans le répertoire de l'exécutable
+      # Destination = Frameworks du bundle
+      set(DEST_DIR "$<TARGET_BUNDLE_DIR:${target_name}>/Contents/Frameworks")
+
+      # Crée le dossier Frameworks
+      add_custom_command(TARGET ${target_name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${DEST_DIR}"
+        COMMENT "Create Contents/Frameworks for shadercross"
+      )
+
+      # Prend les dylibs (versionnées ou non), mais exclut les dylibs SDL3 eux-mêmes (qui sont déjà gérés séparément) pour éviter les doublons et les conflits de version.
       file(GLOB SHADERCROSS_DYLIBS
         "${CRZGAMES_LIBRARIES_PATH}/macos/lib/SDL3_shadercross/*.dylib"
         "${CRZGAMES_LIBRARIES_PATH}/macos/lib/SDL3_shadercross/*.dylib.*"
       )
-
-      # On utilise déjà notre propre SDL3.dylib, donc on exclut juste SDL3
       list(FILTER SHADERCROSS_DYLIBS EXCLUDE REGEX ".*/libSDL3(\\..*)?\\.dylib(\\..*)?$")
 
+      # Copier les dylibs de shadercross dans le bundle, en conservant les liens symboliques et en évitant de copier les dylibs SDL3 qui sont déjà gérés séparément.
       foreach(FILE IN LISTS SHADERCROSS_DYLIBS)
         get_filename_component(FILE_NAME "${FILE}" NAME)
         add_custom_command(TARGET ${target_name} POST_BUILD
           COMMAND ${CMAKE_COMMAND} -E copy_if_different
                   "${FILE}"
-                  "$<TARGET_FILE_DIR:${target_name}>/${FILE_NAME}"
+                  "${DEST_DIR}/${FILE_NAME}"
+          COMMENT "Copy shadercross dylib: ${FILE_NAME}"
         )
       endforeach()
     elseif(WIN32) # Windows
@@ -374,12 +383,14 @@ function(rc2d_configure_shadercross target_name)
       file(GLOB_RECURSE SHADERCROSS_DLLS
         "${CRZGAMES_LIBRARIES_PATH}/windows/bin/SDL3_shadercross/${RC2D_ARCH}/*.dll"
       )
+      list(FILTER SHADERCROSS_DLLS EXCLUDE REGEX ".*/SDL3(\\..*)?\\.dll$") # Exclut les DLLs SDL3 eux-mêmes pour éviter les doublons et les conflits de version, car elles sont déjà gérées séparément
       foreach(FILE IN LISTS SHADERCROSS_DLLS)
         get_filename_component(FILE_NAME "${FILE}" NAME)
         add_custom_command(TARGET ${target_name} POST_BUILD
           COMMAND ${CMAKE_COMMAND} -E copy_if_different
                   "${FILE}"
                   "$<TARGET_FILE_DIR:${target_name}>/${FILE_NAME}"
+          COMMENT "Copy shadercross DLL: ${FILE_NAME}"
         )
       endforeach()
     elseif(RC2D_PLATFORM STREQUAL "STEAMRT4") # Steam Deck / Steam Linux
@@ -387,6 +398,7 @@ function(rc2d_configure_shadercross target_name)
         "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/SDL3_shadercross/${RC2D_ARCH}/*.so"
         "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/SDL3_shadercross/${RC2D_ARCH}/*.so.*"
       )
+      list(FILTER SHADERCROSS_SO EXCLUDE REGEX ".*/libSDL3(\\..*)?\\.so(\\..*)?$") # Exclut les .so SDL3 eux-mêmes pour éviter les doublons et les conflits de version, car elles sont déjà gérés séparément
 
       # Copier aussi les .so dans le répertoire de l'exécutable
       add_custom_command(TARGET ${target_name} POST_BUILD
@@ -399,6 +411,7 @@ function(rc2d_configure_shadercross target_name)
         "${CRZGAMES_LIBRARIES_PATH}/linux/lib/SDL3_shadercross/${RC2D_ARCH}/*.so"
         "${CRZGAMES_LIBRARIES_PATH}/linux/lib/SDL3_shadercross/${RC2D_ARCH}/*.so.*"
       )
+      list(FILTER SHADERCROSS_SO EXCLUDE REGEX ".*/libSDL3(\\..*)?\\.so(\\..*)?$") # Exclut les .so SDL3 eux-mêmes pour éviter les doublons et les conflits de version, car elles sont déjà gérés séparément
 
       # Copier aussi les .so dans le répertoire de l'exécutable
       add_custom_command(TARGET ${target_name} POST_BUILD
