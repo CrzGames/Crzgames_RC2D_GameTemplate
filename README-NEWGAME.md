@@ -246,6 +246,7 @@ Une fois exécuté, tout est régénéré automatiquement pour toutes les platef
 
 Dans CMakeLists.txt tu as (modifier si besoin) :
 
+- APP_NAME
 - APP_VERSION_NUMERIC
 - APP_VERSION_STR
 - APP_COMPANY_NAME  
