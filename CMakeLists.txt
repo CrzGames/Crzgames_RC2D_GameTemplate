@@ -59,13 +59,13 @@ option(GAME_BUILD_APPLE_CODE_SIGNING "Activer ou désactiver le code signing pou
 # afin d'inclure ces métadonnées dans l'exécutable final.
 # ============================================================
 
-# Version "numérique" strict (SemVer) -> pour FILEVERSION/PRODUCTVERSION (Windows) et CFBundleShortVersionString (iOS/macOS).
 if(DEFINED ENV{APP_NAME})
   set(APP_NAME "$ENV{APP_NAME}" CACHE STRING "Nom de l'application")
 else()
   set(APP_NAME "TestExe" CACHE STRING "Nom de l'application")
 endif()
 
+# Version "numérique" strict (SemVer) -> pour FILEVERSION/PRODUCTVERSION (Windows) et CFBundleShortVersionString (iOS/macOS).
 if(DEFINED ENV{APP_VERSION_NUMERIC})
   set(APP_VERSION_NUMERIC "$ENV{APP_VERSION_NUMERIC}" CACHE STRING "Version numerique (major.minor.patch)")
 else()
