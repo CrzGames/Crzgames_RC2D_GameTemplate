@@ -495,7 +495,7 @@ function(rc2d_configure_shader_pipeline target_name)
     file(GLOB _bins "${SHADERCROSS_BIN_DIR}/*")
     file(GLOB _dylibs "${SHADERCROSS_LIB_DIR}/*.dylib")
     list(APPEND _stage_files ${_bins} ${_dylibs})
-  elseif(RC2D_PLATFORM STREQUAL "STEAMRT4" OR CMAKE_HOST_UNIX)
+  elseif(CMAKE_HOST_UNIX) # Linux, SteamRT4, Android-host Linux
     file(GLOB _bins "${SHADERCROSS_BIN_DIR}/*")
     file(GLOB _sos
       "${SHADERCROSS_LIB_DIR}/*.so"
@@ -517,7 +517,7 @@ function(rc2d_configure_shader_pipeline target_name)
   # 3) Target portable : stage_shadercross_tools (stamp file)
   # ------------------------------------------------------------
   set(_stage_stamp "${CMAKE_CURRENT_BINARY_DIR}/stage_shadercross_tools.stamp")
-  if(WIN32 OR APPLE)
+  if(CMAKE_HOST_WIN32 OR CMAKE_HOST_APPLE) # Windows, macOS/iOS, Android-host Windows/macOS
     add_custom_command(
       OUTPUT "${_stage_stamp}"
       COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_TOOLS_DIR}"
@@ -528,7 +528,7 @@ function(rc2d_configure_shader_pipeline target_name)
       VERBATIM
     )
   else()
-    # UNIX (Linux / SteamRT4 / Android-host Linux-macOS)
+    # UNIX (Linux / SteamRT4 / Android-host Linux)
     # -> copier fichier par fichier sans passer par sh (évite le problème des ';' des listes CMake)
     set(_copy_script "${CMAKE_CURRENT_BINARY_DIR}/stage_shadercross_copy.cmake")
     file(WRITE "${_copy_script}" "file(MAKE_DIRECTORY \"${SHADER_TOOLS_DIR}\")\n")
