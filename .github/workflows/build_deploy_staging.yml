@@ -48,7 +48,7 @@ env:
   ###### IOS ######
   # Profil de provisionnement Apple au format : .mobileprovision (iOS) ou .provisionprofile (macOS) encodé en base64
   # TODO: A modifier pour chaque nouvelle application iOS pour : secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64
-  IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }}
+  IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_NAMEAPPLICATION_BASE64: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }}
   # Mot de passe spécifique à l'application pour l'identifiant Apple, nécessaire pour l'upload sur App Store Connect via altool ou Fastlane
   APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APPLICATION_SPECIFIC_PASSWORD }}
   # Variables pour l'API App Store Connect, nécessaires pour l'upload sur App Store Connect via Fastlane (recommandé)
@@ -300,7 +300,7 @@ jobs:
 
           # import certificate and provisioning profile from secrets
           echo -n "${{ env.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64 }}" | base64 --decode -o $CERTIFICATE_PATH
-          echo -n "${{ env.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }}" | base64 --decode -o $PP_PATH
+          echo -n "${{ env.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_NAMEAPPLICATION_BASE64 }}" | base64 --decode -o $PP_PATH
 
           # create temporary keychain
           security create-keychain -p "${{ env.KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH

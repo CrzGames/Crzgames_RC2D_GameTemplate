@@ -197,8 +197,8 @@ Changer par votre nouveau nom de target de CMake et changer rapport à votre nou
 - APP_GAME_DESCRIPTION
 - APP_IOS_PROVISIONING_PROFILE_NAME
 - APP_IOS_PROVISIONING_PROFILE_UUID
-- IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64
-- Pour le step : `Bundle runtime (SteamRT4) - only executable + .so + assets + shaders`, changer le `./rc2d-game-template` par le nouveau nom de la target CMake.
+- IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_NAMEAPPLICATION_BASE64: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }} (modifier le secret)
+
 
 <br /><br />
 
