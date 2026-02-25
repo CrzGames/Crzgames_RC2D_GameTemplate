@@ -30,7 +30,7 @@ project(rc2d-game-template
 # ============================================================
 set(RC2D_EOS_SDK_ENABLED OFF CACHE BOOL "" FORCE)
 set(RC2D_STEAMWORKS_SDK_ENABLED OFF CACHE BOOL "" FORCE)
-set(RC2D_GPU_SHADER_HOT_RELOAD_ENABLED ON CACHE BOOL "" FORCE) # CONSEILLE: Pour la production il est recommandé de le désactiver.
+set(RC2D_GPU_SHADER_HOT_RELOAD_ENABLED OFF CACHE BOOL "" FORCE) # CONSEILLE: Pour la production il est recommandé de le désactiver.
 set(RC2D_MEMORY_DEBUG_ENABLED ON CACHE BOOL "" FORCE) # CONSEILLE: Pour la production il est recommandé de le désactiver.
 set(RC2D_DATA_MODULE_ENABLED ON CACHE BOOL "" FORCE)
 set(RC2D_NET_MODULE_ENABLED ON CACHE BOOL "" FORCE)
