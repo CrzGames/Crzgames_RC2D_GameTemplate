@@ -492,6 +492,9 @@ jobs:
           # 5) Supprimer tous les fichiers .awk du bundle
           find "$OUT" -type f -name "*.awk" -delete
 
+          # 6) Copier le fichier version.txt à la racine du bundle
+          cp -a "$BUILD_DIR/version.txt" "$OUT/"
+
           echo "=== Bundle content ==="
           find "$OUT" -maxdepth 3 -print
 
