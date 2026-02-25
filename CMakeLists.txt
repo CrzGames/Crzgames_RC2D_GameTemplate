@@ -519,18 +519,35 @@ function(rc2d_configure_shader_pipeline target_name)
   # 3) Target portable : stage_shadercross_tools (stamp file)
   # ------------------------------------------------------------
   set(_stage_stamp "${CMAKE_CURRENT_BINARY_DIR}/stage_shadercross_tools.stamp")
+  if(WIN32 OR APPLE)
+    add_custom_command(
+      OUTPUT "${_stage_stamp}"
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_TOOLS_DIR}"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${_stage_files} "${SHADER_TOOLS_DIR}/"
+      COMMAND ${CMAKE_COMMAND} -E touch "${_stage_stamp}"
+      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+      COMMENT "Stage SDL3_shadercross into shaders/tools (before shader compilation)"
+      VERBATIM
+    )
+  else()
+    # UNIX (Linux / SteamRT4 / Android-host Linux/macOS)
+    # -> copier fichier par fichier sans passer par sh (évite le problème des ';' des listes CMake)
+    set(_copy_script "${CMAKE_CURRENT_BINARY_DIR}/stage_shadercross_copy.cmake")
+    file(WRITE "${_copy_script}" "file(MAKE_DIRECTORY \"${SHADER_TOOLS_DIR}\")\n")
+    foreach(f IN LISTS _stage_files)
+      file(APPEND "${_copy_script}"
+        "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E copy_if_different \"${f}\" \"${SHADER_TOOLS_DIR}/\")\n")
+    endforeach()
 
-  add_custom_command(
-    OUTPUT "${_stage_stamp}"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_TOOLS_DIR}"
-    # Copie toutes les dépendances
-    COMMAND /bin/sh -c "cp -a ${_stage_files} \"${SHADER_TOOLS_DIR}/\""
-    # Permissions / rpath si nécessaire
-    COMMAND ${CMAKE_COMMAND} -E touch "${_stage_stamp}"
-    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    COMMENT "Stage SDL3_shadercross into shaders/tools (before shader compilation)"
-    VERBATIM
-  )
+    add_custom_command(
+      OUTPUT "${_stage_stamp}"
+      COMMAND ${CMAKE_COMMAND} -P "${_copy_script}"
+      COMMAND ${CMAKE_COMMAND} -E touch "${_stage_stamp}"
+      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+      COMMENT "Stage SDL3_shadercross into shaders/tools (before shader compilation)"
+      VERBATIM
+    )
+  endif()
 
   # Ajustements spécifiques (après copie)
   if(APPLE OR (ANDROID AND CMAKE_HOST_APPLE))
