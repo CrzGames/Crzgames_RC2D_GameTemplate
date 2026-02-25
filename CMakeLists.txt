@@ -485,19 +485,17 @@ function(rc2d_configure_shader_pipeline target_name)
   # ------------------------------------------------------------
   set(_stage_files "")
 
-  if(WIN32 OR (ANDROID AND CMAKE_HOST_WIN32))
+  if(CMAKE_HOST_WIN32)
     file(GLOB _bins
       "${SHADERCROSS_BIN_DIR}/*.exe"
       "${SHADERCROSS_BIN_DIR}/*.dll"
     )
     list(APPEND _stage_files ${_bins})
-
-  elseif(APPLE OR (ANDROID AND CMAKE_HOST_APPLE))
+  elseif(CMAKE_HOST_APPLE)
     file(GLOB _bins "${SHADERCROSS_BIN_DIR}/*")
     file(GLOB _dylibs "${SHADERCROSS_LIB_DIR}/*.dylib")
     list(APPEND _stage_files ${_bins} ${_dylibs})
-
-  elseif(RC2D_PLATFORM STREQUAL "STEAMRT4" OR (UNIX AND NOT APPLE AND NOT ANDROID) OR (ANDROID AND CMAKE_HOST_UNIX))
+  elseif(RC2D_PLATFORM STREQUAL "STEAMRT4" OR CMAKE_HOST_UNIX)
     file(GLOB _bins "${SHADERCROSS_BIN_DIR}/*")
     file(GLOB _sos
       "${SHADERCROSS_LIB_DIR}/*.so"
@@ -530,7 +528,7 @@ function(rc2d_configure_shader_pipeline target_name)
       VERBATIM
     )
   else()
-    # UNIX (Linux / SteamRT4 / Android-host Linux/macOS)
+    # UNIX (Linux / SteamRT4 / Android-host Linux-macOS)
     # -> copier fichier par fichier sans passer par sh (évite le problème des ';' des listes CMake)
     set(_copy_script "${CMAKE_CURRENT_BINARY_DIR}/stage_shadercross_copy.cmake")
     file(WRITE "${_copy_script}" "file(MAKE_DIRECTORY \"${SHADER_TOOLS_DIR}\")\n")
@@ -550,7 +548,7 @@ function(rc2d_configure_shader_pipeline target_name)
   endif()
 
   # Ajustements spécifiques (après copie)
-  if(APPLE OR (ANDROID AND CMAKE_HOST_APPLE))
+  if(CMAKE_HOST_APPLE)
     add_custom_command(
       OUTPUT "${_stage_stamp}.applefix"
       DEPENDS "${_stage_stamp}"
@@ -560,7 +558,7 @@ function(rc2d_configure_shader_pipeline target_name)
       VERBATIM
     )
     add_custom_target(stage_shadercross_tools DEPENDS "${_stage_stamp}.applefix")
-  elseif(UNIX AND NOT WIN32)
+  elseif(CMAKE_HOST_UNIX)
     add_custom_command(
       OUTPUT "${_stage_stamp}.unixfix"
       DEPENDS "${_stage_stamp}"
@@ -576,7 +574,7 @@ function(rc2d_configure_shader_pipeline target_name)
   # ------------------------------------------------------------
   # 4) Target compile_shaders (dépend du staging)
   # ------------------------------------------------------------
-  if(WIN32)
+  if(CMAKE_HOST_WIN32)
     set(SHADERS_COMPILE_SCRIPT "${SHADERS_SCRIPTS_DIR}/compile-shaders-windows.bat")
     add_custom_target(compile_shaders
       COMMAND "${SHADERS_COMPILE_SCRIPT}"
