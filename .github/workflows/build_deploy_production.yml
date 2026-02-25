@@ -18,7 +18,10 @@ env:
   ANDROID_CMDLINE_TOOLS_VERSION: "20.0"
   JAVA_DISTRIBUTION: "temurin"
   JAVA_VERSION: "17"
-s
+  ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+  ANDROID_KEYSTORE_ALIAS_NAME: ${{ secrets.ANDROID_KEYSTORE_ALIAS_NAME }}
+  ANDROID_KEYSTORE_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
+
   XCODE_VERSION: "26.3.0"
 
   # TODO: A modifier pour chaque nouvelle application iOS / macOS pour : com.crzgames.*
@@ -40,18 +43,14 @@ s
   # Cela sert pour le CMakelists.txt
   APP_IOS_PROVISIONING_PROFILE_UUID: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_UUID }}
   # Cela sert pour le CMakelists.txt
-  APP_IOS_CODE_SIGN_IDENTITY: "Apple Distribution: Corentin Recanzone (2X96T6AM4K)"
+  APP_IOS_CODE_SIGN_IDENTITY: "Apple Distribution: Corentin Recanzone (U3D28WJ8DV)"
   # Cela sert pour le CMakelists.txt
-  APP_MACOS_CODE_SIGN_IDENTITY: "Developer ID Application: Corentin Recanzone (2X96T6AM4K)"
+  APP_MACOS_CODE_SIGN_IDENTITY: "Developer ID Application: Corentin Recanzone (U3D28WJ8DV)"
 
   ###### IOS ######
-  # Certificat Apple au format p12 encodé en base64 
-  IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64: ${{ secrets.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64 }}
-  # Mot de passe du certificat p12
-  IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_PASSWORD: ${{ secrets.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_PASSWORD }}
   # Profil de provisionnement Apple au format : .mobileprovision (iOS) ou .provisionprofile (macOS) encodé en base64
   # TODO: A modifier pour chaque nouvelle application iOS pour : secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64
-  IOSMACOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_BASE64: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }}
+  IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }}
   # Mot de passe spécifique à l'application pour l'identifiant Apple, nécessaire pour l'upload sur App Store Connect via altool ou Fastlane
   APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APPLICATION_SPECIFIC_PASSWORD }}
   # Variables pour l'API App Store Connect, nécessaires pour l'upload sur App Store Connect via Fastlane (recommandé)
@@ -60,6 +59,10 @@ s
   APPLE_APPSTORECONNECT_API_KEY_P8_BASE64: ${{ secrets.APPLE_APPSTORECONNECT_API_KEY_P8_BASE64 }}
   
   ###### iOS / macOS - Commun ######
+  # Certificat Apple au format p12 encodé en base64 
+  IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64: ${{ secrets.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64 }}
+  # Mot de passe du certificat p12
+  IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_PASSWORD: ${{ secrets.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_PASSWORD }}
   # Un nouveau trousseau sera créé sur le coureur, de sorte que le mot de passe du nouveau trousseau peut être n'importe quelle nouvelle chaîne aléatoire
   KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
   # Identifiant (Email) du compte développeur Apple
@@ -218,9 +221,6 @@ jobs:
           name: variables-apple
           path: variables-apple.env
 
-      - name: Print the version of the app - All platforms
-        run: echo "The final app version is $APP_VERSION"
-
       - name: Install dependencies for AppImage - Linux
         if: matrix.config.platform == 'linux'
         run: |
@@ -277,9 +277,6 @@ jobs:
           ./gradlew bundleRelease
         working-directory: android-project
         env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEYSTORE_ALIAS_NAME: ${{ secrets.ANDROID_KEYSTORE_ALIAS_NAME }}
-          ANDROID_KEYSTORE_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
           ANDROID_VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
           ANDROID_VERSION_NAME: ${{ env.ANDROID_VERSION_NAME }}
 
@@ -301,7 +298,7 @@ jobs:
 
           # import certificate and provisioning profile from secrets
           echo -n "${{ env.IOSMACOS_APPLE_CERTIFICATE_APPLEDISTRIBUTION_P12_BASE64 }}" | base64 --decode -o $CERTIFICATE_PATH
-          echo -n "${{ env.IOSMACOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_BASE64 }}" | base64 --decode -o $PP_PATH
+          echo -n "${{ env.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }}" | base64 --decode -o $PP_PATH
 
           # create temporary keychain
           security create-keychain -p "${{ env.KEYCHAIN_PASSWORD }}" $KEYCHAIN_PATH
@@ -361,7 +358,7 @@ jobs:
         with:
           build-dir: build-${{ matrix.config.platform }}-${{ matrix.config.arch }}
           generator: Xcode
-          options: CMAKE_SYSTEM_NAME=iOS
+          options: CMAKE_SYSTEM_NAME=iOS GAME_BUILD_APPLE_CODE_SIGNING=ON
 
       - name: Run build with CMake - iOS (iphoneos)
         if: matrix.config.platform == 'ios'
@@ -369,26 +366,26 @@ jobs:
 
       - name: Verify the signature - iOS (iphoneos)
         if: matrix.config.platform == 'ios'
-        run: codesign --verify --deep --verify --verbose=4 build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.app
+        run: codesign --verify --deep --verify --verbose=4 build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release-iphoneos/*.app
 
       - name: Create .ipa package for AppStore - iOS (iphoneos)
         if: matrix.config.platform == 'ios'
         run: |
           # Create Payload directory and move .app into it
           mkdir Payload
-          cp -a build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.app Payload/
+          cp -a build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release-iphoneos/*.app Payload/
  
           # Recuperer le nom du fichier .app pour avoir le même nom pour le .ipa, puis zip le Payload dans un .ipa
           APP_NAME=$(basename Payload/*.app .app)
           zip -ry $APP_NAME.ipa Payload/
 
           # Move .ipa to build directory
-          mv $APP_NAME.ipa build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/
+          mv $APP_NAME.ipa build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release-iphoneos/
 
       - name: Validate app with altool - iOS (iphoneos)
         if: matrix.config.platform == 'ios'
         run: |
-          xcrun altool --validate-app --file build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.ipa --type ios --username ${{ env.APPLE_ID }} --password ${{ env.APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+          xcrun altool --validate-app --file build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release-iphoneos/*.ipa --type ios --username ${{ env.APPLE_ID }} --password ${{ env.APPLE_APPLICATION_SPECIFIC_PASSWORD }}
 
       - name: Configure project with CMake - Windows (x64/arm64)
         if: matrix.config.platform == 'windows'
@@ -432,6 +429,10 @@ jobs:
           cxx-compiler: g++
           options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }}
 
+      - name: CMake Install for generate AppImage - Linux (x64/arm64)
+        if: matrix.config.platform == 'linux'
+        run: cmake --install build-${{ matrix.config.platform }}-${{ matrix.config.arch }}
+
       - name: Configure project with CMake and Run build - SteamRT4 (x64/arm64)
         if: matrix.config.platform == 'steamrt4'
         uses: threeal/cmake-action@v2.1.0
@@ -443,9 +444,32 @@ jobs:
           cxx-compiler: g++
           options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }} RC2D_PLATFORM=STEAMRT4
 
-      - name: CMake Install for generate AppImage - Linux (x64/arm64) / SteamRT4 (x64/arm64)
-        if: matrix.config.platform == 'linux' || matrix.config.platform == 'steamrt4'
-        run: cmake --install build-${{ matrix.config.platform }}-${{ matrix.config.arch }}
+      - name: Bundle runtime (SteamRT4) - only executable + .so + assets + shaders
+        if: matrix.config.platform == 'steamrt4'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUILD_DIR="build-${{ matrix.config.platform }}-${{ matrix.config.arch }}"
+          OUT="bundle-${{ matrix.config.platform }}-${{ matrix.config.arch }}"
+
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+
+          # 1) binaire (à adapter si le nom change)
+          cp -a "./rc2d-game-template" "$OUT/"
+
+          # 2) data
+          cp -a "./assets"  "$OUT/"
+          cp -a "./shaders" "$OUT/"
+
+          # 3) libs: copie uniquement les .so.* (garde symlinks si présents)
+          find . -maxdepth 1 -type f \( -name "*.so" -o -name "*.so.*" \) -print0 \
+            | xargs -0 -I{} cp -a "{}" "$OUT/"
+
+          # vérifier ce qu'il y a dedans
+          echo "=== Bundle content ==="
+          find "$OUT" -maxdepth 2 -print
 
       - name: Configure project with CMake - macOS (arm64)
         if: matrix.config.platform == 'macos'
@@ -455,8 +479,7 @@ jobs:
           generator: Xcode
           c-compiler: clang
           cxx-compiler: clang++
-          options: CMAKE_SYSTEM_NAME=Darwin
-          # A voir si on supprime ou pas : CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO
+          options: CMAKE_SYSTEM_NAME=Darwin GAME_BUILD_APPLE_CODE_SIGNING=ON CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO
           
       - name: Run build with CMake - macOS (arm64)
         if: matrix.config.platform == 'macos'
@@ -478,9 +501,31 @@ jobs:
         if: matrix.config.platform == 'macos'
         run: zip -r --symlinks build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/MyApp.zip build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.app
 
-      - name: Submit app for notarization - macOS
+      - name: Submit app for notarization + print log if invalid - macOS
         if: matrix.config.platform == 'macos'
-        run: xcrun notarytool submit build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/MyApp.zip --wait --keychain-profile login
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ZIP_PATH="build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/MyApp.zip"
+
+          echo "Submitting notarization for: $ZIP_PATH"
+          OUT="$(xcrun notarytool submit "$ZIP_PATH" --wait --keychain-profile login --output-format json)"
+          echo "$OUT"
+
+          ID="$(echo "$OUT" | python -c 'import sys,json; print(json.load(sys.stdin)["id"])')"
+          STATUS="$(echo "$OUT" | python -c 'import sys,json; print(json.load(sys.stdin)["status"])')"
+
+          echo "Notary submission id: $ID"
+          echo "Notary status: $STATUS"
+
+          if [[ "$STATUS" != "Accepted" ]]; then
+            echo "❌ Notarization failed -> fetching log..."
+            xcrun notarytool log "$ID" --keychain-profile login || true
+            exit 1
+          fi
+
+          echo "✅ Notarization accepted"
 
       - name: Staple the notarization ticket - macOS
         if: matrix.config.platform == 'macos'
@@ -522,7 +567,7 @@ jobs:
           name: ${{ matrix.config.platform }}-${{ matrix.config.arch }}
           retention-days: 1
           path: |
-            build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.ipa
+            build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release-iphoneos/*.ipa
 
       - name: Archive executable artifacts - macOS
         if: matrix.config.platform == 'macos'
@@ -547,6 +592,8 @@ jobs:
         with:
           name: ${{ matrix.config.platform }}-${{ matrix.config.arch }}
           retention-days: 1
+          path: |
+            build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/*
 
       - name: Archive executable artifacts - Windows
         if: matrix.config.platform == 'windows'

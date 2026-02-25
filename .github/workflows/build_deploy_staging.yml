@@ -427,6 +427,10 @@ jobs:
           cxx-compiler: g++
           options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }}
 
+      - name: CMake Install for generate AppImage - Linux (x64/arm64)
+        if: matrix.config.platform == 'linux'
+        run: cmake --install build-${{ matrix.config.platform }}-${{ matrix.config.arch }}
+
       - name: Configure project with CMake and Run build - SteamRT4 (x64/arm64)
         if: matrix.config.platform == 'steamrt4'
         uses: threeal/cmake-action@v2.1.0
@@ -438,9 +442,32 @@ jobs:
           cxx-compiler: g++
           options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }} RC2D_PLATFORM=STEAMRT4
 
-      - name: CMake Install for generate AppImage - Linux (x64/arm64)
-        if: matrix.config.platform == 'linux'
-        run: cmake --install build-${{ matrix.config.platform }}-${{ matrix.config.arch }}
+      - name: Bundle runtime (SteamRT4) - only executable + .so + assets + shaders
+        if: matrix.config.platform == 'steamrt4'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUILD_DIR="build-${{ matrix.config.platform }}-${{ matrix.config.arch }}"
+          OUT="bundle-${{ matrix.config.platform }}-${{ matrix.config.arch }}"
+
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+
+          # 1) binaire (à adapter si le nom change)
+          cp -a "./rc2d-game-template" "$OUT/"
+
+          # 2) data
+          cp -a "./assets"  "$OUT/"
+          cp -a "./shaders" "$OUT/"
+
+          # 3) libs: copie uniquement les .so.* (garde symlinks si présents)
+          find . -maxdepth 1 -type f \( -name "*.so" -o -name "*.so.*" \) -print0 \
+            | xargs -0 -I{} cp -a "{}" "$OUT/"
+
+          # vérifier ce qu'il y a dedans
+          echo "=== Bundle content ==="
+          find "$OUT" -maxdepth 2 -print
 
       - name: Configure project with CMake - macOS (arm64)
         if: matrix.config.platform == 'macos'
