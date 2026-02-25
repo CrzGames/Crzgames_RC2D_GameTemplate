@@ -591,7 +591,7 @@ jobs:
           name: ${{ matrix.config.platform }}-${{ matrix.config.arch }}
           retention-days: 1
           path: |
-            build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/*
+            bundle-${{ matrix.config.platform }}-${{ matrix.config.arch }}/
 
       - name: Archive executable artifacts - Windows
         if: matrix.config.platform == 'windows'
