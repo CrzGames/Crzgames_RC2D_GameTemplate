@@ -22,9 +22,9 @@ env:
 
   XCODE_VERSION: "26.3.0"
 
-  # TODO: A modifier pour chaque nouvelle application pour : MyGame
+  # TODO: A modifier pour chaque nouvelle application pour : TestExe
   # Cela sert pour le CMakelists.txt et pour la CI/CD S3
-  APP_NAME: MyGame
+  APP_NAME: TestExe
   # TODO: A modifier pour chaque nouvelle application iOS / macOS pour : com.crzgames.*
   # Cela sert pour le CMakelists.txt
   APP_IOSMACOS_IDENTIFIER: com.crzgames.testexe
