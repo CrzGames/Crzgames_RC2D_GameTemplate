@@ -569,11 +569,20 @@ function(rc2d_configure_shader_pipeline target_name)
       COMMENT "Compile shaders (Windows)"
       VERBATIM
     )
-  else() # Linux, SteamRT4, macOS/iOS, Android-host Linux/macOS
+  elseif(CMAKE_HOST_APPLE) # macOS/iOS, Android-host macOS
     set(SHADERS_COMPILE_SCRIPT "${SHADERS_SCRIPTS_DIR}/compile-shaders-unix.sh")
     add_custom_target(compile_shaders
       COMMAND /bin/chmod +x "${SHADERS_COMPILE_SCRIPT}"
       COMMAND "${SHADERS_COMPILE_SCRIPT}"
+      WORKING_DIRECTORY "${SHADERS_SCRIPTS_DIR}"
+      COMMENT "Compile shaders (Unix)"
+      VERBATIM
+    )
+  elseif(CMAKE_HOST_UNIX) # Linux, SteamRT4, Android-host Linux
+    set(SHADERS_COMPILE_SCRIPT "${SHADERS_SCRIPTS_DIR}/compile-shaders-unix.sh")
+    add_custom_target(compile_shaders
+      COMMAND /bin/chmod +x "${SHADERS_COMPILE_SCRIPT}"
+      COMMAND /bin/sh -c "export LD_LIBRARY_PATH='${SHADER_TOOLS_DIR}':\$\$LD_LIBRARY_PATH; '${SHADERS_COMPILE_SCRIPT}'"
       WORKING_DIRECTORY "${SHADERS_SCRIPTS_DIR}"
       COMMENT "Compile shaders (Unix)"
       VERBATIM
