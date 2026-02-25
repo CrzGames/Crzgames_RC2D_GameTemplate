@@ -199,6 +199,11 @@ Changer par votre nouveau nom de target de CMake et changer rapport à votre nou
 - APP_IOS_PROVISIONING_PROFILE_NAME
 - APP_IOS_PROVISIONING_PROFILE_UUID
 - IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_NAMEAPPLICATION_BASE64: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }} (modifier le secret)
+- AWS_ACCESS_KEY_ID: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ACCESS_KEY_ID }} (modifier le secret)
+- AWS_SECRET_ACCESS_KEY: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_SECRET_ACCESS_KEY }} (modifier le secret)
+- AWS_DEFAULT_REGION: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_REGION }} (modifier le secret)
+- OVH_S3_ENDPOINT: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ENDPOINT }} (modifier le secret)
+- OVH_S3_BUCKET: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_NAME }} (modifier le secret)
 
 
 <br /><br />
