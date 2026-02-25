@@ -1,5 +1,5 @@
 # Format: library=repository:tag ou library=repository:commit_sha
 
 Crzgames_Libraries=https://github.com/CrzGames/Crzgames_Libraries.git:cc8eab5af386f59841249528cc1b3b10ef303777
-Crzgames_RC2D=https://github.com/CrzGames/Crzgames_RC2D.git:ea8992dddde35556cdd884feacd5354c3428424e
+Crzgames_RC2D=https://github.com/CrzGames/Crzgames_RC2D.git:a6e921f7f1f30fa392b96899555c1a8f4ffeabfb
 cpp-httplib=https://github.com/yhirose/cpp-httplib.git:v0.34.0
