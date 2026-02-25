@@ -393,20 +393,7 @@ function(rc2d_configure_shadercross target_name)
           COMMENT "Copy shadercross DLL: ${FILE_NAME}"
         )
       endforeach()
-    elseif(RC2D_PLATFORM STREQUAL "STEAMRT4") # Steam Deck / Steam Linux
-      file(GLOB_RECURSE SHADERCROSS_SO
-        "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/SDL3_shadercross/${RC2D_ARCH}/*.so"
-        "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/SDL3_shadercross/${RC2D_ARCH}/*.so.*"
-      )
-      list(FILTER SHADERCROSS_SO EXCLUDE REGEX ".*/libSDL3(\\..*)?\\.so(\\..*)?$") # Exclut les .so SDL3 eux-mêmes pour éviter les doublons et les conflits de version, car elles sont déjà gérés séparément
-
-      # Copier aussi les .so dans le répertoire de l'exécutable
-      add_custom_command(TARGET ${target_name} POST_BUILD
-        COMMAND cp -a ${SHADERCROSS_SO} "$<TARGET_FILE_DIR:${target_name}>/"
-        COMMENT "Copie des bibliothèques SDL3_shadercross avec conservation des liens symboliques"
-        VERBATIM
-      )
-    elseif(UNIX AND NOT APPLE AND NOT ANDROID) # Linux, Raspberry PI 5 etc.    
+    elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAMRT4")) # Linux, Raspberry PI 5 etc. 
       file(GLOB_RECURSE SHADERCROSS_SO
         "${CRZGAMES_LIBRARIES_PATH}/linux/lib/SDL3_shadercross/${RC2D_ARCH}/*.so"
         "${CRZGAMES_LIBRARIES_PATH}/linux/lib/SDL3_shadercross/${RC2D_ARCH}/*.so.*"
