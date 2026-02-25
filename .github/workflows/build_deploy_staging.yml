@@ -649,13 +649,15 @@ jobs:
         run: |
           source variables/variables.env
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
-
+          echo "APP_VERSION_STR=$APP_VERSION_STR" >> $GITHUB_ENV
+    
       - name: Read version and identifier from artifact variables-apple.env - iOS (iphoneos)
         # On'as besoin de ces variables pour l'étape de fastlane via le script Fastfile
         if: matrix.platform == 'macos-26'
         run: |
           source variables-apple/variables-apple.env
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+          echo "APP_VERSION_STR=$APP_VERSION_STR" >> $GITHUB_ENV
           echo "APP_IOSMACOS_IDENTIFIER=$APP_IOSMACOS_IDENTIFIER" >> $GITHUB_ENV
 
       - name: Install Fastlane via Homebrew - iOS (iphoneos)
