@@ -28,18 +28,21 @@ project(rc2d-game-template
 # Toutes les options RC2D_* qui permettent d'activer/désactiver
 # des modules, features ou intégrations SDK.
 # ============================================================
-set(RC2D_EOS_SDK_ENABLED OFF CACHE BOOL "" FORCE)
-set(RC2D_STEAMWORKS_SDK_ENABLED OFF CACHE BOOL "" FORCE)
-set(RC2D_GPU_SHADER_HOT_RELOAD_ENABLED ON CACHE BOOL "" FORCE) # CONSEILLE: Pour la production il est recommandé de le désactiver.
-set(RC2D_MEMORY_DEBUG_ENABLED ON CACHE BOOL "" FORCE) # CONSEILLE: Pour la production il est recommandé de le désactiver.
-set(RC2D_DATA_MODULE_ENABLED ON CACHE BOOL "" FORCE)
-set(RC2D_NET_MODULE_ENABLED ON CACHE BOOL "" FORCE)
-set(RC2D_VIDEO_MODULE_ENABLED ON CACHE BOOL "" FORCE)
-set(RC2D_ONNX_MODULE_ENABLED ON CACHE BOOL "" FORCE)
-set(RC2D_ASSERT_LEVEL 3 CACHE STRING "" FORCE)
-set(RC2D_BUILDING_SHARED OFF CACHE BOOL "" FORCE)
+
+# Toujours désactivé dans un game template
 set(RC2D_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(RC2D_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(RC2D_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+# Le reste : défauts, mais la CI peut override avec -D
+set(RC2D_EOS_SDK_ENABLED OFF CACHE BOOL "")
+set(RC2D_STEAMWORKS_SDK_ENABLED OFF CACHE BOOL "")
+set(RC2D_GPU_SHADER_HOT_RELOAD_ENABLED ON CACHE BOOL "") # CONSEILLE: Pour la production il est recommandé de le désactiver.
+set(RC2D_MEMORY_DEBUG_ENABLED ON CACHE BOOL "")          # CONSEILLE: Pour la production il est recommandé de le désactiver.
+set(RC2D_DATA_MODULE_ENABLED ON CACHE BOOL "")
+set(RC2D_NET_MODULE_ENABLED ON CACHE BOOL "")
+set(RC2D_VIDEO_MODULE_ENABLED ON CACHE BOOL "")
+set(RC2D_ONNX_MODULE_ENABLED ON CACHE BOOL "")
+set(RC2D_ASSERT_LEVEL 3 CACHE STRING "")
+set(RC2D_BUILDING_SHARED OFF CACHE BOOL "")
 
 # ============================================================
 # Build Options Game Template
