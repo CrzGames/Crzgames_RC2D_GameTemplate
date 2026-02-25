@@ -292,18 +292,30 @@ function(rc2d_configure_onnxruntime target_name)
         )
       endforeach()
     elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin") # macOS
-        # Copier aussi les libraries dynamique dans le répertoire de l'exécutable
-        file(GLOB_RECURSE ONNX_DYLIBS
-          "${CRZGAMES_LIBRARIES_PATH}/macos/lib/onnxruntime/*.dylib"
+      # Destination = Frameworks du bundle
+      set(ONNX_DEST_DIR "$<TARGET_BUNDLE_DIR:${target_name}>/Contents/Frameworks")
+
+      # Crée le dossier Frameworks
+      add_custom_command(TARGET ${target_name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${ONNX_DEST_DIR}"
+        COMMENT "Create Contents/Frameworks for ONNX Runtime"
+      )
+
+      # Prend les dylibs (versionnées ou non)
+      file(GLOB ONNX_DYLIBS
+        "${CRZGAMES_LIBRARIES_PATH}/macos/lib/onnxruntime/*.dylib"
+        "${CRZGAMES_LIBRARIES_PATH}/macos/lib/onnxruntime/*.dylib.*"
+      )
+
+      foreach(FILE IN LISTS ONNX_DYLIBS)
+        get_filename_component(FILE_NAME "${FILE}" NAME)
+        add_custom_command(TARGET ${target_name} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                  "${FILE}"
+                  "${ONNX_DEST_DIR}/${FILE_NAME}"
+          COMMENT "Copy ONNX Runtime: ${FILE_NAME}"
         )
-        foreach(FILE IN LISTS ONNX_DYLIBS)
-          get_filename_component(FILE_NAME "${FILE}" NAME)
-          add_custom_command(TARGET ${target_name} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "${FILE}"
-                    "$<TARGET_FILE_DIR:${target_name}>/${FILE_NAME}"
-          )
-        endforeach()
+      endforeach()
     elseif (RC2D_PLATFORM STREQUAL "STEAMRT4") # Steam Deck / Steam Linux
       # Copier aussi les libraries dynamique dans le répertoire de l'exécutable
       file(GLOB_RECURSE ONNX_SO
