@@ -22,8 +22,10 @@ build
 # Compiled object files
 docker-build-output-steamrt4/
 
-# Ignore shader tools and scripts
+# Ignore shader tools, reflection and compiled shaders
 /shaders/tools/
+/shaders/compiled/
+/shaders/reflection/
 
 # For project Windows
 platforms/windows/resource.rc
@@ -35,6 +37,3 @@ icons/outputs
 # AppImage tools
 appimagetool-x86_64.AppImage
 appimagetool-aarch64.AppImage
-
-/shaders/compiled/
-/shaders/reflection/
