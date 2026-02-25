@@ -735,42 +735,42 @@ jobs:
 
           SUFFIX="${APP_VERSION_STR}"
 
-          # Sanitize nom du jeu
           APP_NAME_SAFE="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
 
           mkdir -p dist
+          DIST_DIR="$(pwd)/dist"
 
           zip_dir () {
             local src="$1"
-            local out="$2"
-            ( cd "$src" && zip -ry --symlinks "../$out" . )
+            local out_name="$2"
+            ( cd "$src" && zip -ry --symlinks "${DIST_DIR}/${out_name}" . )
           }
 
           # Windows
           if [ -d "windows/x64" ]; then
-            zip_dir "windows/x64" "dist/${APP_NAME_SAFE}-windows-x64-${SUFFIX}.zip"
+            zip_dir "windows/x64" "${APP_NAME_SAFE}-windows-x64-${SUFFIX}.zip"
           fi
           if [ -d "windows/arm64" ]; then
-            zip_dir "windows/arm64" "dist/${APP_NAME_SAFE}-windows-arm64-${SUFFIX}.zip"
+            zip_dir "windows/arm64" "${APP_NAME_SAFE}-windows-arm64-${SUFFIX}.zip"
           fi
 
           # Linux
           if [ -d "linux/x64" ]; then
-            zip_dir "linux/x64" "dist/${APP_NAME_SAFE}-linux-x64-${SUFFIX}.zip"
+            zip_dir "linux/x64" "${APP_NAME_SAFE}-linux-x64-${SUFFIX}.zip"
           fi
           if [ -d "linux/arm64" ]; then
-            zip_dir "linux/arm64" "dist/${APP_NAME_SAFE}-linux-arm64-${SUFFIX}.zip"
+            zip_dir "linux/arm64" "${APP_NAME_SAFE}-linux-arm64-${SUFFIX}.zip"
           fi
 
           # SteamRT4
           if [ -d "steamrt4/x64" ]; then
-            zip_dir "steamrt4/x64" "dist/${APP_NAME_SAFE}-steamrt4-x64-${SUFFIX}.zip"
+            zip_dir "steamrt4/x64" "${APP_NAME_SAFE}-steamrt4-x64-${SUFFIX}.zip"
           fi
           if [ -d "steamrt4/arm64" ]; then
-            zip_dir "steamrt4/arm64" "dist/${APP_NAME_SAFE}-steamrt4-arm64-${SUFFIX}.zip"
+            zip_dir "steamrt4/arm64" "${APP_NAME_SAFE}-steamrt4-arm64-${SUFFIX}.zip"
           fi
 
-          # macOS : zip déjà créé dans macos/arm64, on le renomme au format
+          # macOS : zip déjà existant, on le copie/renomme dans dist
           if ls macos/arm64/*.zip >/dev/null 2>&1; then
             MAC_ZIP="$(ls macos/arm64/*.zip | head -n 1)"
             cp -a "$MAC_ZIP" "dist/${APP_NAME_SAFE}-macos-arm64-${SUFFIX}.zip"
@@ -778,15 +778,16 @@ jobs:
 
           # iOS : zip sans arch
           if ls ios/arm64-iphoneos/*.ipa >/dev/null 2>&1; then
+            rm -rf tmp-ios
             mkdir -p tmp-ios
             cp -a ios/arm64-iphoneos/*.ipa tmp-ios/
-            ( cd tmp-ios && zip -ry --symlinks "../dist/${APP_NAME_SAFE}-ios-${SUFFIX}.zip" . )
+            ( cd tmp-ios && zip -ry --symlinks "${DIST_DIR}/${APP_NAME_SAFE}-ios-${SUFFIX}.zip" . )
             rm -rf tmp-ios
           fi
 
           # Android : zip sans arch (si artifact android présent)
           if [ -d "android" ]; then
-            zip_dir "android" "dist/${APP_NAME_SAFE}-android-${SUFFIX}.zip"
+            zip_dir "android" "${APP_NAME_SAFE}-android-${SUFFIX}.zip"
           fi
 
           echo "=== dist ==="

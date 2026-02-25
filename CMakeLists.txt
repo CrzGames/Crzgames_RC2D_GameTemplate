@@ -137,6 +137,22 @@ else()
 endif()
 
 # ============================================================
+# version.txt (APP_VERSION_STR) — generated file
+# ============================================================
+
+# Emplacement du fichier généré (gère multi-config VS/Xcode)
+if(CMAKE_GENERATOR MATCHES "Visual Studio|Xcode")
+  set(GENERATED_VERSION_TXT "${CMAKE_BINARY_DIR}/$<CONFIG>/version.txt")
+else()
+  set(GENERATED_VERSION_TXT "${CMAKE_BINARY_DIR}/version.txt")
+endif()
+# Génère le fichier au moment du "generate" CMake (pas au runtime)
+file(GENERATE
+  OUTPUT "${GENERATED_VERSION_TXT}"
+  CONTENT "${APP_VERSION_STR}\n"
+)
+
+# ============================================================
 # Dépendances vendored — add_subdirectory
 # ============================================================
 # Ajouter les dépendances vendored pour RC2D, avec add_subdirectory pour que CMake 
@@ -594,6 +610,40 @@ function(rc2d_configure_shader_pipeline target_name)
   add_dependencies(${target_name} compile_shaders)
 endfunction()
 
+# ============================================================
+# Deploy version.txt per-platform
+# ============================================================
+# 1) Windows / Linux / SteamRT4 : à côté de l'exécutable
+if(NOT ANDROID AND NOT APPLE)
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${GENERATED_VERSION_TXT}"
+            "$<TARGET_FILE_DIR:${APP_TARGET}>/version.txt"
+    COMMENT "Copy version.txt next to executable"
+    VERBATIM
+  )
+endif()
+# 2) macOS : dans .app/Contents/Resources
+if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${GENERATED_VERSION_TXT}"
+            "$<TARGET_BUNDLE_DIR:${APP_TARGET}>/Contents/Resources/version.txt"
+    COMMENT "Embed version.txt into macOS bundle Resources"
+    VERBATIM
+  )
+endif()
+# 3) iOS : dans la racine du bundle .app
+if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${GENERATED_VERSION_TXT}"
+            "$<TARGET_BUNDLE_DIR:${APP_TARGET}>/version.txt"
+    COMMENT "Embed version.txt into iOS app bundle"
+    VERBATIM
+  )
+endif()
+
 # Appeler les fonctions de configuration pour FFmpeg, ONNX Runtime et SDL3_shadercross 
 # pour copier les lib dynamiques nécessaires et configurer les outils de shadercross pour la compilation hors ligne des shaders.
 rc2d_configure_ffmpeg(${APP_TARGET})
@@ -988,6 +1038,7 @@ elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAM
       ASSETS
         \"${CMAKE_BINARY_DIR}/assets\"
         \"${CMAKE_BINARY_DIR}/shaders\"
+        \"${CMAKE_BINARY_DIR}/version.txt\"
     )"
     COMPONENT Runtime
   )
