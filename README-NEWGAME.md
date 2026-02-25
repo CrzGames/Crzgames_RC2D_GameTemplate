@@ -193,6 +193,7 @@ Changer par votre nouveau nom de target de CMake et changer rapport à votre nou
 
 # CI / CD : Changer certaines valeurs dans les variables d'environnement
 `buid_deploy_staging.yml` ET `buid_deploy_production.yml`: 
+- APP_NAME
 - APP_IOSMACOS_IDENTIFIER
 - APP_GAME_DESCRIPTION
 - APP_IOS_PROVISIONING_PROFILE_NAME

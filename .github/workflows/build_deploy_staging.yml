@@ -22,6 +22,8 @@ env:
 
   XCODE_VERSION: "26.3.0"
 
+  # TODO: A modifier pour chaque nouvelle application pour : MyGame
+  APP_NAME: MyGame
   # TODO: A modifier pour chaque nouvelle application iOS / macOS pour : com.crzgames.*
   # Cela sert pour le CMakelists.txt
   APP_IOSMACOS_IDENTIFIER: com.crzgames.testexe
@@ -199,6 +201,7 @@ jobs:
         if: matrix.config.platform == 'linux' && matrix.config.arch == 'x64'
         run: |
           echo "APP_VERSION=$APP_VERSION" > variables.env
+          echo "APP_VERSION_STR=$APP_VERSION_STR" >> variables.env
 
       - name: Upload version in Artifacts - Linux x64 (for Windows / Linux / Android / SteamRT4)
         # On execute cette étape que sur 1 Linux parce que c'est la même version pour Windows, Linux, Android et SteamRT4
@@ -213,6 +216,7 @@ jobs:
         if: matrix.config.platform == 'macos'
         run: |
           echo "APP_VERSION=$APP_VERSION" > variables-apple.env
+          echo "APP_VERSION_STR=$APP_VERSION_STR" >> variables-apple.env
           echo "APP_IOSMACOS_IDENTIFIER=$APP_IOSMACOS_IDENTIFIER" >> variables-apple.env
 
       - name: Upload version and identifier in Artifacts - macOS / iOS
@@ -624,7 +628,7 @@ jobs:
           path: |
             build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*
 
-  deploy_executable_platform:
+  deploy_executable_s3:
     needs: build_game_and_sign
     strategy:
       fail-fast: false
@@ -640,31 +644,28 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v7
 
-      #- name: Read version from artifact variables.env - Windows / Linux / Android / SteamRT4
-      #  # On'as besoin de la version pour l'étape de déploiement via Minio
-      #  if: matrix.platform == 'ubuntu-latest'
-      #  run: |
-      #    source variables/variables.env
-      #    echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+      - name: Read version from artifact variables.env - Windows / Linux / Android / SteamRT4
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          source variables/variables.env
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
 
-      #- name: Read version and identifier from artifact variables-apple.env - iOS (iphoneos)
-      #  # On'as besoin de ces variables pour l'étape de fastlane via le script Fastfile
-      #  if: matrix.platform == 'macos-26'
-      #  run: |
-      #    source variables-apple/variables-apple.env
-      #    echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
-      #    echo "APP_IOSMACOS_IDENTIFIER=$APP_IOSMACOS_IDENTIFIER" >> $GITHUB_ENV
+      - name: Read version and identifier from artifact variables-apple.env - iOS (iphoneos)
+        # On'as besoin de ces variables pour l'étape de fastlane via le script Fastfile
+        if: matrix.platform == 'macos-26'
+        run: |
+          source variables-apple/variables-apple.env
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+          echo "APP_IOSMACOS_IDENTIFIER=$APP_IOSMACOS_IDENTIFIER" >> $GITHUB_ENV
 
-      #- name: Install Fastlane via Homebrew - iOS (iphoneos)
-      #  if: matrix.platform == 'macos-26'
-      #  run: brew install fastlane
+      - name: Install Fastlane via Homebrew - iOS (iphoneos)
+        if: matrix.platform == 'macos-26'
+        run: brew install fastlane
 
-      # Bien que cette erreur apparaisse dans les logs de CI, les builds sont en réalité correctement distribués aux groupes internes et externes sur App Store Connect.
-      # Nous attendons un correctif de la part de l'équipe Fastlane. En attendant, nous continuerons à surveiller manuellement les distributions de builds.
       #- name: Deploy IPA to TestFlight (groups beta/qa) - iOS (iphoneos)
       #  if: matrix.platform == 'macos-26'
       #  run: |
-      #    mv ios-arm64-arm64e/*.ipa platforms/ios/
+      #    mv ios-arm64/*.ipa platforms/ios/
       #    IPA_PATH=$(ls platforms/ios/*.ipa | head -n 1)
       #    if [ -z "$IPA_PATH" ]; then
       #      echo "No IPA file found in platforms/ios/"
@@ -678,7 +679,7 @@ jobs:
       #  if: matrix.platform == 'ubuntu-latest'
       #  uses: r0adkll/upload-google-play@v1
       #  with:
-      #    serviceAccountJsonPlainText: ${{ secrets.ANDROID_GOOGLE_CLOUD_PLATEFORM_SERVICE_JSON }}
+      #    serviceAccountJsonPlainText: ${{ secrets.ANDROID_GOOGLE_CLOUD_PLATEFORM_SERVICE_JSON_BASE64 }}
       #    packageName: "com.crzgames.testexe"
       #    whatsNewDirectory: "android-project/distribution/whatsnew"
       #    status: "completed" # Or completed/inProgress/halted/draft
@@ -693,7 +694,7 @@ jobs:
       #  if: matrix.platform == 'ubuntu-latest'
       #  uses: r0adkll/upload-google-play@v1
       #  with:
-      #    serviceAccountJsonPlainText: ${{ secrets.ANDROID_GOOGLE_CLOUD_PLATEFORM_SERVICE_JSON }}
+      #    serviceAccountJsonPlainText: ${{ secrets.ANDROID_GOOGLE_CLOUD_PLATEFORM_SERVICE_JSON_BASE64 }}
       #    packageName: "com.crzgames.testexe"
       #    whatsNewDirectory: "android-project/distribution/whatsnew"
       #    status: "completed" # Or completed/inProgress/halted/draft
@@ -704,25 +705,90 @@ jobs:
       #    # Tests internes : qa
       #    track: "beta" # Or beta/qa/production
 
-      - name: Organize Artificats for Windows / Linux / Android / SteamRT4 / macOS / iOS
+      - name: Organize Artificats for Windows / Linux / SteamRT4 / macOS / iOS
         if: matrix.platform == 'ubuntu-latest'
         run: |
           mkdir -p windows/x64
           mkdir -p windows/arm64
           mkdir -p linux/x64
           mkdir -p linux/arm64
-          mkdir -p android/armeabi-v7a
-          mkdir -p android/arm64-v8a
           mkdir -p macos/arm64
-          mv windows-x64/*.exe windows/x64/
-          mv windows-x64/*.dll windows/x64/
-          mv windows-arm64/*.exe windows/arm64/
-          mv windows-arm64/*.dll windows/arm64/
+          mkdir -p ios/arm64-iphoneos
+          mkdir -p steamrt4/x64
+          mkdir -p steamrt4/arm64
+          mv windows-x64/* windows/x64/
+          mv windows-arm64/* windows/arm64/
           mv linux-x64/*.AppImage linux/x64/
           mv linux-arm64/*.AppImage linux/arm64/
-          mv android-armeabi-v7a/*.apk android/armeabi-v7a/
-          mv android-arm64-v8a/*.apk android/arm64-v8a/
+          mv steamrt4-x64/* steamrt4/x64/
+          mv steamrt4-arm64/* steamrt4/arm64/
           mv macos-arm64/*.zip macos/arm64/
+          mv ios-arm64/*.ipa ios/arm64-iphoneos/
+
+      - name: Create distributable zips for OVH S3 - Windows / Linux / SteamRT4 / macOS / iOS / Android
+        if: matrix.platform == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SUFFIX="${APP_VERSION_STR}"
+
+          # Sanitize nom du jeu
+          APP_NAME_SAFE="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
+
+          mkdir -p dist
+
+          zip_dir () {
+            local src="$1"
+            local out="$2"
+            ( cd "$src" && zip -ry --symlinks "../$out" . )
+          }
+
+          # Windows
+          if [ -d "windows/x64" ]; then
+            zip_dir "windows/x64" "dist/${APP_NAME_SAFE}-windows-x64-${SUFFIX}.zip"
+          fi
+          if [ -d "windows/arm64" ]; then
+            zip_dir "windows/arm64" "dist/${APP_NAME_SAFE}-windows-arm64-${SUFFIX}.zip"
+          fi
+
+          # Linux
+          if [ -d "linux/x64" ]; then
+            zip_dir "linux/x64" "dist/${APP_NAME_SAFE}-linux-x64-${SUFFIX}.zip"
+          fi
+          if [ -d "linux/arm64" ]; then
+            zip_dir "linux/arm64" "dist/${APP_NAME_SAFE}-linux-arm64-${SUFFIX}.zip"
+          fi
+
+          # SteamRT4
+          if [ -d "steamrt4/x64" ]; then
+            zip_dir "steamrt4/x64" "dist/${APP_NAME_SAFE}-steamrt4-x64-${SUFFIX}.zip"
+          fi
+          if [ -d "steamrt4/arm64" ]; then
+            zip_dir "steamrt4/arm64" "dist/${APP_NAME_SAFE}-steamrt4-arm64-${SUFFIX}.zip"
+          fi
+
+          # macOS : zip déjà créé dans macos/arm64, on le renomme au format
+          if ls macos/arm64/*.zip >/dev/null 2>&1; then
+            MAC_ZIP="$(ls macos/arm64/*.zip | head -n 1)"
+            cp -a "$MAC_ZIP" "dist/${APP_NAME_SAFE}-macos-arm64-${SUFFIX}.zip"
+          fi
+
+          # iOS : zip sans arch
+          if ls ios/arm64-iphoneos/*.ipa >/dev/null 2>&1; then
+            mkdir -p tmp-ios
+            cp -a ios/arm64-iphoneos/*.ipa tmp-ios/
+            ( cd tmp-ios && zip -ry --symlinks "../dist/${APP_NAME_SAFE}-ios-${SUFFIX}.zip" . )
+            rm -rf tmp-ios
+          fi
+
+          # Android : zip sans arch (si artifact android présent)
+          if [ -d "android" ]; then
+            zip_dir "android" "dist/${APP_NAME_SAFE}-android-${SUFFIX}.zip"
+          fi
+
+          echo "=== dist ==="
+          ls -lah dist
 
       - name: Install AWS CLI for deploy on OVH S3
         if: matrix.platform == 'ubuntu-latest'
@@ -731,29 +797,15 @@ jobs:
           pip install awscli
 
       # Deploie sur un bucket S3 les fichiers du jeu
-      # Pour chaque plateforme Desktop (Windows, Linux, macOS, SteamRT4)
-      - name: Upload artifacts (Game) to OVH S3
+      # Pour chaque plateforme (Windows, Linux, macOS, SteamRT4, Android, IOS)
+      - name: Upload zips to OVH S3 (Games binaries) - Windows / Linux / SteamRT4 / macOS / iOS / Android
         if: matrix.platform == 'ubuntu-latest'
+        shell: bash
         run: |
           set -euo pipefail
 
-          # IMPORTANT:
-          # - garde --delete si tu veux un miroir exact (comme ton action MinIO)
-          # - enlève --delete si tu veux conserver d’anciennes versions/fichiers
-          SYNC_FLAGS="--delete"
+          APP_NAME_SAFE="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
 
           aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
-            "windows/x64/" "s3://$OVH_S3_BUCKET/games/binaries/game-testexe/windows/x86_64/$APP_VERSION/" \
-            $SYNC_FLAGS
-
-          aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
-            "windows/x86/" "s3://$OVH_S3_BUCKET/games/binaries/game-testexe/windows/x86/$APP_VERSION/" \
-            $SYNC_FLAGS
-
-          aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
-            "macos/" "s3://$OVH_S3_BUCKET/games/binaries/game-testexe/macos/x86_64-arm64/$APP_VERSION/" \
-            $SYNC_FLAGS
-
-          aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
-            "linux/" "s3://$OVH_S3_BUCKET/games/binaries/game-testexe/linux/x86_64/$APP_VERSION/" \
-            $SYNC_FLAGS
+            "dist/" "s3://$OVH_S3_BUCKET/games/binaries/${APP_NAME_SAFE}/${APP_VERSION_STR}/" \
+            --delete
