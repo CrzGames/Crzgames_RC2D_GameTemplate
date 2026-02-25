@@ -170,6 +170,21 @@ jobs:
           echo "APP_VERSION_NUMERIC: $APP_VERSION_NUMERIC"
           echo "APP_VERSION_STR:     $APP_VERSION_STR"
           echo "APP_VERSION (compat): $APP_VERSION_EFFECTIVE"
+
+      - name: Install Metal Toolchain for Shaders compilation - macOS / iOS
+        if: matrix.config.platform == 'ios' || matrix.config.platform == 'macos'
+        run: xcodebuild -downloadComponent MetalToolchain
+
+      - name: Run script for compile shaders - macOS / iOS / SteamRT4 / Linux / Android
+        if: matrix.config.platform == 'ios' || matrix.config.platform == 'macos' || matrix.config.platform == 'steamrt4' || matrix.config.platform == 'linux' || matrix.config.platform == 'android'
+        run: |
+          chmod +x ./shaders/scripts/compile-shaders-unix.sh
+          ./shaders/scripts/compile-shaders-unix.sh
+
+      - name: Run script for compile shaders - Windows
+        if: matrix.config.platform == 'windows'
+        run: |
+          .\shaders\scripts\compile-shaders-windows.bat
           
       - name: Set variables environment for versionCode and versionName - Android
         if: matrix.config.platform == 'android'
@@ -349,7 +364,7 @@ jobs:
           echo "SDK Path: $SDKROOT"
           echo "SDK Version: $SDKVERSION"
         shell: bash
-
+      
       - name: Configure project with CMake and Run build - iOS (iphoneos)
         if: matrix.config.platform == 'ios'
         uses: threeal/cmake-action@v2.1.0
