@@ -466,10 +466,18 @@ jobs:
             -exec cp -a {} "$OUT/" \;
 
           # 2) Data
-          cp -a assets  "$OUT/"
-          cp -a shaders "$OUT/"
+          cp -a assets "$OUT/"
 
-          # 3) Libs: copie tous les .so / .so.* depuis la racine (comme ton dossier local)
+          # 3) Shaders: copier puis ne garder que compiled + reflection
+          cp -a shaders "$OUT/"
+          if [ -d "$OUT/shaders" ]; then
+            find "$OUT/shaders" -mindepth 1 -maxdepth 1 \
+              -not -name "compiled" \
+              -not -name "reflection" \
+              -exec rm -rf {} +
+          fi
+
+          # 4) Libs: copie tous les .so / .so.* depuis la racine (comme ton dossier local)
           find . -maxdepth 1 -type f \( -name "*.so" -o -name "*.so.*" \) \
             -exec cp -a {} "$OUT/" \;
 
@@ -477,8 +485,11 @@ jobs:
           find "$BUILD_DIR" -type f \( -name "*.so" -o -name "*.so.*" \) \
             -exec cp -a {} "$OUT/" \;
 
+          # 5) Supprimer tous les fichiers .awk du bundle
+          find "$OUT" -type f -name "*.awk" -delete
+
           echo "=== Bundle content ==="
-          find "$OUT" -maxdepth 2 -print
+          find "$OUT" -maxdepth 3 -print
 
       - name: Configure project with CMake - macOS (arm64)
         if: matrix.config.platform == 'macos'

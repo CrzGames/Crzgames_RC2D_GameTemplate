@@ -524,7 +524,7 @@ function(rc2d_configure_shader_pipeline target_name)
     OUTPUT "${_stage_stamp}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_TOOLS_DIR}"
     # Copie toutes les dépendances
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${_stage_files} "${SHADER_TOOLS_DIR}/"
+    COMMAND /bin/sh -c "cp -a ${_stage_files} \"${SHADER_TOOLS_DIR}/\""
     # Permissions / rpath si nécessaire
     COMMAND ${CMAKE_COMMAND} -E touch "${_stage_stamp}"
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
