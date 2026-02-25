@@ -286,6 +286,22 @@ jobs:
           ANDROID_VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
           ANDROID_VERSION_NAME: ${{ env.ANDROID_VERSION_NAME }}
 
+      - name: Inspect APK - Android
+        if: matrix.config.platform == 'android'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APK="android-project/app/build/outputs/apk/release/app-release.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "❌ app-release.apk not found"
+            exit 1
+          fi
+
+          echo "✅ Inspecting $APK"
+          unzip -l "$APK"
+
       - name: Organize the build for Artificats - Android
         if: matrix.config.platform == 'android'
         run: |
@@ -812,6 +828,9 @@ jobs:
 
           APP_NAME_SAFE="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
 
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          BRANCH_SAFE="$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
+
           aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
-            "dist/" "s3://$OVH_S3_BUCKET/games/binaries/${APP_NAME_SAFE}/${APP_VERSION_STR}/" \
+            "dist/" "s3://$OVH_S3_BUCKET/gameclient-${APP_NAME_SAFE}/binaries/${BRANCH_SAFE}/${APP_VERSION_STR}/" \
             --delete
