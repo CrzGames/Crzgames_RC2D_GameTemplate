@@ -187,7 +187,7 @@ add_subdirectory(dependencies/Crzgames_RC2D EXCLUDE_FROM_ALL)
 # CRZGAMES_LIBRARIES_PATH: dossier où on ranges les libs précompilées (ffmpeg, openssl, rcenet, onnxruntime, sdl3shadercross, etc.) pour chaque plateforme.
 # ============================================================
 set(DEPENDENCIES_PATH "${CMAKE_CURRENT_SOURCE_DIR}/dependencies")
-set(CRZGAMES_LIBRARIES_PATH "${DEPENDENCIES_PATH}/Crzgames_Libraries")
+set(CRZGAMES_LIBRARIES_PATH "${DEPENDENCIES_PATH}/Crzgames_RC2D/dependencies/Crzgames_Libraries")
 
 # ============================================================
 # Fichiers source de l’exécutable
