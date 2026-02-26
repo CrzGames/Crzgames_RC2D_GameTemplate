@@ -246,14 +246,14 @@ Une fois exécuté, tout est régénéré automatiquement pour toutes les platef
 
 Dans CMakeLists.txt tu as (modifier si besoin) :
 
-- APP_NAME
-- APP_VERSION_NUMERIC
-- APP_VERSION_STR
-- APP_COMPANY_NAME  
-- APP_GAME_DESCRIPTION  
-- APP_LEGAL_COPYRIGHT  
-- APP_IOSMACOS_BUILD_VERSION  
-- APP_IOSMACOS_IDENTIFIER  
+- APP_NAME (le nom de la target CMake)
+- APP_VERSION_NUMERIC (version : patch.minor.major, gérer par la CI/CD pour staging/production, en local ce base sur la variable d'environnement ou la valeur par défault)
+- APP_VERSION_STR (version: patch.minor.major-staging-commitshashort, utilise pour staging, pour production ça sera juste : patch.minor.major, gérer par la CI/CD pour staging/production, en local ce base sur la variable d'environnement ou la valeur par défault )
+- APP_COMPANY_NAME (Exemple : CrzGames)
+- APP_GAME_DESCRIPTION (Une description du jeu)
+- APP_LEGAL_COPYRIGHT
+- APP_IOSMACOS_BUILD_VERSION (version : patch.minor.major, gérer par la CI/CD pour staging/production, en local ce base sur la variable d'environnement ou la valeur par défault) 
+- APP_IOSMACOS_IDENTIFIER (identifant de l'app iOS/macOS, exemple : com.nomdelacompagny.nomdujeu)
 - APP_IOSMACOS_DEVELOPMENT_TEAM_ID
 - APP_IOS_PROVISIONING_PROFILE_NAME
 - APP_IOS_PROVISIONING_PROFILE_UUID

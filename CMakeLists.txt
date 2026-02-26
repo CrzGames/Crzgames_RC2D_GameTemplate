@@ -62,7 +62,7 @@ option(GAME_BUILD_APPLE_CODE_SIGNING "Activer ou désactiver le code signing pou
 if(DEFINED ENV{APP_NAME})
   set(APP_NAME "$ENV{APP_NAME}" CACHE STRING "Nom de l'application")
 else()
-  set(APP_NAME "TestExe" CACHE STRING "Nom de l'application")
+  set(APP_NAME "rc2d-game-template" CACHE STRING "Nom de l'application")
 endif()
 
 # Version "numérique" strict (SemVer) -> pour FILEVERSION/PRODUCTVERSION (Windows) et CFBundleShortVersionString (iOS/macOS).

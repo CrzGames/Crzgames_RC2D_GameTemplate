@@ -24,7 +24,8 @@ env:
 
   # TODO: A modifier pour chaque nouvelle application pour : TestExe
   # Cela sert pour le CMakelists.txt et pour la CI/CD S3
-  APP_NAME: TestExe
+  # Dois être le nom de la target CMake
+  APP_NAME: rc2d-game-template
   # TODO: A modifier pour chaque nouvelle application iOS / macOS pour : com.crzgames.*
   # Cela sert pour le CMakelists.txt
   APP_IOSMACOS_IDENTIFIER: com.crzgames.testexe
@@ -305,11 +306,15 @@ jobs:
 
       - name: Organize the build for Artificats - Android
         if: matrix.config.platform == 'android'
+        shell: bash
         run: |
-          mkdir -p android/apk/
-          mkdir -p android/aab/
-          mv android-project/app/build/outputs/apk/release/app-release.apk android/apk/
-          mv android-project/app/build/outputs/bundle/release/app-release.aab android/aab/
+          set -euo pipefail
+          mkdir -p android/apk android/aab
+
+          APP_NAME_SAFE="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
+
+          mv android-project/app/build/outputs/apk/release/app-release.apk "android/apk/${APP_NAME_SAFE}.apk"
+          mv android-project/app/build/outputs/bundle/release/app-release.aab "android/aab/${APP_NAME_SAFE}.aab"
           
       - name: Install the Apple Certificate and Provisioning Profile (Apple Distribution) - AppStore / TestFlight - iOS
         if: matrix.config.platform == 'ios'
@@ -765,13 +770,30 @@ jobs:
             local out_name="$2"
             ( cd "$src" && zip -ry --symlinks "${DIST_DIR}/${out_name}" . )
           }
+          zip_dir_with_root () {
+            local src="$1"
+            local out_name="$2"
+            local root="$3"
+
+            rm -rf ".tmp-pack"
+            mkdir -p ".tmp-pack/$root"
+            cp -a "$src"/. ".tmp-pack/$root/"
+
+            ( cd ".tmp-pack" && zip -ry --symlinks "${DIST_DIR}/${out_name}" "$root" )
+            rm -rf ".tmp-pack"
+          }
 
           # Windows
           if [ -d "windows/x64" ]; then
-            zip_dir "windows/x64" "${APP_NAME_SAFE}-windows-x64-${SUFFIX}.zip"
+            ZIP_NAME="${APP_NAME_SAFE}-windows-x64-${SUFFIX}.zip"
+            ROOT="${APP_NAME_SAFE}"
+            zip_dir_with_root "windows/x64" "$ZIP_NAME" "$ROOT"
           fi
+
           if [ -d "windows/arm64" ]; then
-            zip_dir "windows/arm64" "${APP_NAME_SAFE}-windows-arm64-${SUFFIX}.zip"
+            ZIP_NAME="${APP_NAME_SAFE}-windows-arm64-${SUFFIX}.zip"
+            ROOT="${APP_NAME_SAFE}"
+            zip_dir_with_root "windows/arm64" "$ZIP_NAME" "$ROOT"
           fi
 
           # Linux
@@ -784,16 +806,36 @@ jobs:
 
           # SteamRT4
           if [ -d "steamrt4/x64" ]; then
-            zip_dir "steamrt4/x64" "${APP_NAME_SAFE}-steamrt4-x64-${SUFFIX}.zip"
-          fi
-          if [ -d "steamrt4/arm64" ]; then
-            zip_dir "steamrt4/arm64" "${APP_NAME_SAFE}-steamrt4-arm64-${SUFFIX}.zip"
+            ZIP_NAME="${APP_NAME_SAFE}-steamrt4-x64-${SUFFIX}.zip"
+            ROOT="${APP_NAME_SAFE}"
+            zip_dir_with_root "steamrt4/x64" "$ZIP_NAME" "$ROOT"
           fi
 
-          # macOS : zip déjà existant, on le copie/renomme dans dist
+          if [ -d "steamrt4/arm64" ]; then
+            ZIP_NAME="${APP_NAME_SAFE}-steamrt4-arm64-${SUFFIX}.zip"
+            ROOT="${APP_NAME_SAFE}"
+            zip_dir_with_root "steamrt4/arm64" "$ZIP_NAME" "$ROOT"
+          fi
+
+          # macOS : reconstruire un zip qui contient uniquement le .app à la racine
           if ls macos/arm64/*.zip >/dev/null 2>&1; then
+            rm -rf tmp-macos
+            mkdir -p tmp-macos
+
             MAC_ZIP="$(ls macos/arm64/*.zip | head -n 1)"
-            cp -a "$MAC_ZIP" "dist/${APP_NAME_SAFE}-macos-arm64-${SUFFIX}.zip"
+            unzip -q "$MAC_ZIP" -d tmp-macos
+
+            # trouver le .app (où qu'il soit dans le zip)
+            APP_PATH="$(find tmp-macos -maxdepth 4 -type d -name '*.app' | head -n 1)"
+            if [ -z "${APP_PATH:-}" ]; then
+              echo "No .app found inside $MAC_ZIP"
+              exit 1
+            fi
+
+            rm -f "dist/${APP_NAME_SAFE}-macos-arm64-${SUFFIX}.zip"
+            ( cd "$(dirname "$APP_PATH")" && zip -qry --symlinks "${DIST_DIR}/${APP_NAME_SAFE}-macos-arm64-${SUFFIX}.zip" "$(basename "$APP_PATH")" )
+
+            rm -rf tmp-macos
           fi
 
           # iOS : zip sans arch
