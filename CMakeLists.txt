@@ -146,6 +146,18 @@ else()
 endif()
 
 # ============================================================
+# Build Environment (dev / staging / production)
+# ============================================================
+set(GAME_ENV "dev" CACHE STRING "Build environment: dev, staging or production")
+set_property(CACHE GAME_ENV PROPERTY STRINGS "dev" "staging" "production")
+
+if(NOT GAME_ENV STREQUAL "dev"
+   AND NOT GAME_ENV STREQUAL "staging"
+   AND NOT GAME_ENV STREQUAL "production")
+  message(FATAL_ERROR "GAME_ENV invalide: '${GAME_ENV}' (attendu: dev, staging ou production)")
+endif()
+
+# ============================================================
 # version.txt (APP_VERSION_STR) — generated file
 # ============================================================
 
@@ -220,6 +232,29 @@ else()
   add_executable(${APP_TARGET} 
     ${SOURCES} 
     ${HEADERS}
+  )
+endif()
+
+# ============================================================
+# Compile-time environment defines
+# ============================================================
+if(GAME_ENV STREQUAL "dev")
+  target_compile_definitions(${APP_TARGET} PRIVATE
+    GAME_ENV_DEV=1
+    GAME_ENV_STAGING=0
+    GAME_ENV_PRODUCTION=0
+  )
+elseif(GAME_ENV STREQUAL "staging")
+  target_compile_definitions(${APP_TARGET} PRIVATE
+    GAME_ENV_DEV=0
+    GAME_ENV_STAGING=1
+    GAME_ENV_PRODUCTION=0
+  )
+else() # production
+  target_compile_definitions(${APP_TARGET} PRIVATE
+    GAME_ENV_DEV=0
+    GAME_ENV_STAGING=0
+    GAME_ENV_PRODUCTION=1
   )
 endif()
 

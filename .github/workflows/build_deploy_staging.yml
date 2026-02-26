@@ -386,7 +386,7 @@ jobs:
         with:
           build-dir: build-${{ matrix.config.platform }}-${{ matrix.config.arch }}
           generator: Xcode
-          options: CMAKE_SYSTEM_NAME=iOS GAME_BUILD_APPLE_CODE_SIGNING=ON RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF
+          options: CMAKE_SYSTEM_NAME=iOS GAME_BUILD_APPLE_CODE_SIGNING=ON RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF GAME_ENV=staging
 
       - name: Run build with CMake - iOS (iphoneos)
         if: matrix.config.platform == 'ios'
@@ -421,7 +421,7 @@ jobs:
         with:
           build-dir: build-${{ matrix.config.platform }}-${{ matrix.config.arch }}
           generator: Visual Studio 17 2022
-          options: RC2D_ARCH=${{ matrix.config.arch }} RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF
+          options: RC2D_ARCH=${{ matrix.config.arch }} RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF GAME_ENV=staging
           c-compiler: cl
           cxx-compiler: cl
           args: -A ${{ matrix.config.arch }}
@@ -455,7 +455,7 @@ jobs:
           generator: Unix Makefiles
           c-compiler: gcc
           cxx-compiler: g++
-          options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }} RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF
+          options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }} RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF GAME_ENV=staging
 
       - name: CMake Install for generate AppImage - Linux (x64/arm64)
         if: matrix.config.platform == 'linux'
@@ -470,7 +470,7 @@ jobs:
           generator: Unix Makefiles
           c-compiler: gcc
           cxx-compiler: g++
-          options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }} RC2D_PLATFORM=STEAMRT4 RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF
+          options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }} RC2D_PLATFORM=STEAMRT4 RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF GAME_ENV=staging
 
       - name: Bundle runtime (SteamRT4) - only executable + .so + assets + shaders
         if: matrix.config.platform == 'steamrt4'
@@ -528,7 +528,7 @@ jobs:
           generator: Xcode
           c-compiler: clang
           cxx-compiler: clang++
-          options: CMAKE_SYSTEM_NAME=Darwin GAME_BUILD_APPLE_CODE_SIGNING=ON CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF
+          options: CMAKE_SYSTEM_NAME=Darwin GAME_BUILD_APPLE_CODE_SIGNING=ON CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF GAME_ENV=staging
           
       - name: Run build with CMake - macOS (arm64)
         if: matrix.config.platform == 'macos'
