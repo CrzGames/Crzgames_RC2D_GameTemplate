@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/CrzGames/Crzgames_RC2D_GameTemplate/compare/v1.0.0...v1.0.1) (2026-02-26)
+
+
+### Bug Fixes
+
+* fixed ci for steamrt4 ([4b58ba2](https://github.com/CrzGames/Crzgames_RC2D_GameTemplate/commit/4b58ba2b196cb6b54538c5ecd6729eebcb9c43b2))
+
 ## 1.0.0 (2026-02-26)
 
 
