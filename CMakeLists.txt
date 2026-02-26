@@ -185,10 +185,8 @@ add_subdirectory(dependencies/Crzgames_RC2D EXCLUDE_FROM_ALL)
 # ============================================================
 # DEPENDENCIES_PATH : racine de ton dossier dependencies/
 # CRZGAMES_LIBRARIES_PATH: dossier où on ranges les libs précompilées (ffmpeg, openssl, rcenet, onnxruntime, sdl3shadercross, etc.) pour chaque plateforme.
-# CRZGAMES_LIBHTTPLIB_PATH : chemin vers le dossier de la bibliothèque cpp-httplib (qui contient les headers de cpp-httplib)
 # ============================================================
 set(DEPENDENCIES_PATH "${CMAKE_CURRENT_SOURCE_DIR}/dependencies")
-set(CRZGAMES_LIBHTTPLIB_PATH "${DEPENDENCIES_PATH}/cpp-httplib")
 set(CRZGAMES_LIBRARIES_PATH "${DEPENDENCIES_PATH}/Crzgames_Libraries")
 
 # ============================================================
@@ -288,11 +286,9 @@ endif()
 # 
 # Ajoute les dossiers d'inclusion nécessaires pour compiler le projet, notamment :
 # - Le dossier include du projet lui-même (pour les headers locaux)
-# - Le dossier de la bibliothèque cpp-httplib (pour les headers de cpp-httplib)
 # ============================================================
 target_include_directories(${APP_TARGET} PRIVATE
   "${PROJECT_SOURCE_DIR}/include"
-  "${CRZGAMES_LIBHTTPLIB_PATH}"
 )
 
 # ============================================================
