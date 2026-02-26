@@ -11,7 +11,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  test_deploy-release:
+  deploy-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

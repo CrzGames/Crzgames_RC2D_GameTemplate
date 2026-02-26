@@ -150,7 +150,6 @@ endif()
 # ============================================================
 set(GAME_ENV "dev" CACHE STRING "Build environment: dev, staging or production")
 set_property(CACHE GAME_ENV PROPERTY STRINGS "dev" "staging" "production")
-
 if(NOT GAME_ENV STREQUAL "dev"
    AND NOT GAME_ENV STREQUAL "staging"
    AND NOT GAME_ENV STREQUAL "production")
@@ -238,6 +237,9 @@ endif()
 # ============================================================
 # Compile-time environment defines
 # ============================================================
+
+# Environement de build (dev/staging/production) : ajoute des macros préprocesseur pour différencier les builds
+# dans le code source, par exemple pour activer des logs de debug en dev mais pas en production.
 if(GAME_ENV STREQUAL "dev")
   target_compile_definitions(${APP_TARGET} PRIVATE
     GAME_ENV_DEV=1
@@ -257,6 +259,12 @@ else() # production
     GAME_ENV_PRODUCTION=1
   )
 endif()
+
+# Ajouter au target compile definitions la version de l'application (APP_VERSION_STR) pour 
+# qu'elle soit accessible dans le code source via une macro préprocesseur, via : APP_VERSION.
+target_compile_definitions(${APP_TARGET} PRIVATE
+  APP_VERSION="${APP_VERSION_STR}"
+)
 
 # ============================================================
 # Output Directories

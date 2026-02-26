@@ -1,4 +1,4 @@
-name: Generate Executable (prod)
+name: Generate Executable and Deploy Bucket S3 (production)
 
 on:
   release:
@@ -113,6 +113,12 @@ jobs:
       - name: Get dependencies with CMake - All platforms
         run: cmake -P cmake/setup_dependencies.cmake
 
+      - name: Mark workspace as safe for git (container) for next steps (Get latest release tag)
+        if: matrix.config.platform == 'steamrt4'
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$(pwd)"
+
       - name: Get latest release tag
         id: previoustag
         uses: WyriHaximus/github-action-get-previous-tag@v2
@@ -149,6 +155,8 @@ jobs:
           echo "APP_VERSION_NUMERIC=$APP_VERSION_NUMERIC" >> "$GITHUB_ENV"
           echo "APP_VERSION_STR=$APP_VERSION_STR" >> "$GITHUB_ENV"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+
+          echo "Determined version: $APP_VERSION"
 
       - name: Install Metal Toolchain for Shaders compilation - macOS / iOS
         if: matrix.config.platform == 'ios' || matrix.config.platform == 'macos'
