@@ -48,6 +48,7 @@ set(RC2D_BUILDING_SHARED OFF CACHE BOOL "")
 # Build Options Game Template
 # ============================================================
 option(GAME_BUILD_APPLE_CODE_SIGNING "Activer ou désactiver le code signing pour les builds Apple (iOS/macOS)." OFF)
+option(GAME_BUILD_LINUX_APPIMAGE "Activer ou désactiver la génération d'un AppImage pour les builds Linux." ON)
 
 # ============================================================
 # Application Metadata
@@ -1040,56 +1041,65 @@ elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
     COMMENT "Enable 120Hz ProMotion support"
   )
 elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAMRT4")) # Linux "classique" (Ubuntu, Debian, Fedora, Arch, etc.) et Raspberry PI 5
-  # Pour l'executable "classique" sur Linux (on ne parle pas de l'AppImage ici, mais rc2d-game-template)
-  set_target_properties(${APP_TARGET} PROPERTIES
-    BUILD_RPATH "\$ORIGIN;\$ORIGIN/usr/lib"
-    INSTALL_RPATH "\$ORIGIN;\$ORIGIN/usr/lib"
-    BUILD_WITH_INSTALL_RPATH TRUE
-  )
+  if(GAME_BUILD_LINUX_APPIMAGE)
+    # Pour l'executable "classique" sur Linux (on ne parle pas de l'AppImage ici, mais rc2d-game-template)
+    set_target_properties(${APP_TARGET} PROPERTIES
+      BUILD_RPATH "\$ORIGIN;\$ORIGIN/usr/lib"
+      INSTALL_RPATH "\$ORIGIN;\$ORIGIN/usr/lib"
+      BUILD_WITH_INSTALL_RPATH TRUE
+    )
 
-  # ------------------------------------------------------------
-  # Arch AppImage depuis RC2D_ARCH
-  # ------------------------------------------------------------
-  if(RC2D_ARCH STREQUAL "x64")
-    set(APPIMAGE_ARCH "x86_64")
-  elseif(RC2D_ARCH STREQUAL "arm64")
-    set(APPIMAGE_ARCH "aarch64")
+    # ------------------------------------------------------------
+    # Arch AppImage depuis RC2D_ARCH
+    # ------------------------------------------------------------
+    if(RC2D_ARCH STREQUAL "x64")
+      set(APPIMAGE_ARCH "x86_64")
+    elseif(RC2D_ARCH STREQUAL "arm64")
+      set(APPIMAGE_ARCH "aarch64")
+    else()
+      message(FATAL_ERROR "RC2D_ARCH invalide: '${RC2D_ARCH}' (attendu: x64 ou arm64)")
+    endif()
+
+    # ------------------------------------------------------------
+    # APPDIR : isolé par arch + build_type (évite collisions)
+    # On le met dans le build tree, pas dans le source tree.
+    # Exemple :
+    #   build/linux/x64/Debug/AppDir
+    #   build/linux/x64/Release/AppDir
+    #   build/linux/arm64/Debug/AppDir
+    #   build/linux/arm64/Release/AppDir
+    # ------------------------------------------------------------
+    set(APPDIR "${CMAKE_BINARY_DIR}/AppDir")
+    set(APPIMAGE_OUTPUT "${CMAKE_BINARY_DIR}/${APP_TARGET}.AppImage")
+
+    install(CODE
+      "include(\"${CMAKE_CURRENT_SOURCE_DIR}/platforms/linux/appimage.cmake\")
+      make_appimage(
+        EXE \"\$<TARGET_FILE:${APP_TARGET}>\"
+        NAME \"${APP_TARGET}\"
+        ICON \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\"
+        DIR_ICON \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\"
+        OUTPUT_NAME \"${APPIMAGE_OUTPUT}\"
+        APP_VERSION \"${APP_VERSION_STR}\"
+        APP_ARCH \"${APPIMAGE_ARCH}\"
+        APPDIR \"${APPDIR}\"
+
+        # 👇 Copie des assets, shaders dans AppDir/ (à côté de l’exe)
+        ASSETS
+          \"${CMAKE_BINARY_DIR}/assets\"
+          \"${CMAKE_BINARY_DIR}/shaders\"
+          \"${CMAKE_BINARY_DIR}/version.txt\"
+      )"
+      COMPONENT Runtime
+    )
   else()
-    message(FATAL_ERROR "RC2D_ARCH invalide: '${RC2D_ARCH}' (attendu: x64 ou arm64)")
+    # Pour les autres cas (Linux "classique" sans AppImage, et Raspberry PI 5), on configure le RPATH à $ORIGIN pour que les .so soient trouvées à l’exécution à côté de l’exécutable.
+    set_target_properties(${APP_TARGET} PROPERTIES
+      BUILD_RPATH "\$ORIGIN"
+      INSTALL_RPATH "\$ORIGIN"
+      BUILD_WITH_INSTALL_RPATH TRUE
+    )
   endif()
-
-  # ------------------------------------------------------------
-  # APPDIR : isolé par arch + build_type (évite collisions)
-  # On le met dans le build tree, pas dans le source tree.
-  # Exemple :
-  #   build/linux/x64/Debug/AppDir
-  #   build/linux/x64/Release/AppDir
-  #   build/linux/arm64/Debug/AppDir
-  #   build/linux/arm64/Release/AppDir
-  # ------------------------------------------------------------
-  set(APPDIR "${CMAKE_BINARY_DIR}/AppDir")
-  set(APPIMAGE_OUTPUT "${CMAKE_BINARY_DIR}/${APP_TARGET}.AppImage")
-
-  install(CODE
-    "include(\"${CMAKE_CURRENT_SOURCE_DIR}/platforms/linux/appimage.cmake\")
-    make_appimage(
-      EXE \"\$<TARGET_FILE:${APP_TARGET}>\"
-      NAME \"${APP_TARGET}\"
-      ICON \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\"
-      DIR_ICON \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\"
-      OUTPUT_NAME \"${APPIMAGE_OUTPUT}\"
-      APP_VERSION \"${APP_VERSION_STR}\"
-      APP_ARCH \"${APPIMAGE_ARCH}\"
-      APPDIR \"${APPDIR}\"
-
-      # 👇 Copie des assets, shaders dans AppDir/ (à côté de l’exe)
-      ASSETS
-        \"${CMAKE_BINARY_DIR}/assets\"
-        \"${CMAKE_BINARY_DIR}/shaders\"
-        \"${CMAKE_BINARY_DIR}/version.txt\"
-    )"
-    COMPONENT Runtime
-  )
 elseif(RC2D_PLATFORM STREQUAL "STEAMRT4") # Steam Deck / Steam Linux
   # ============================================================
   # SteamRT4 — Configure RPATH to $ORIGIN
