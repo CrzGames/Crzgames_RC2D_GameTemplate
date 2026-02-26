@@ -178,12 +178,22 @@ protected String[] getLibraries() {
 <br /><br />
 
 # Changer certaines valeurs dans les scripts "build-scripts/build-deploy-mobile/"
-- `buid-deploy-mobile/android-unix.sh`: APP_COMPONENT="com.crzgames.testexe/.MyGame"
-- `buid-deploy-mobile/android-windows.sh` : APP_COMPONENT="com.crzgames.testexe/.MyGame"
+- `build-scripts/buid-deploy-mobile/android-unix.sh`: APP_COMPONENT="com.crzgames.testexe/.MyGame"
+- `build-scripts/buid-deploy-mobile/android-windows.bat` : APP_COMPONENT="com.crzgames.testexe/.MyGame"
 Changer par votre nouveau package Android !
 
-- `buid-deploy-mobile/ios.sh`: APP_NAME="rc2d-game-template" et BUNDLE_ID="com.crzgames.testexe"
+- `build-scripts/buid-deploy-mobile/ios.sh`: APP_NAME="rc2d-game-template" et BUNDLE_ID="com.crzgames.testexe"
 Changer par votre nouveau nom de target de CMake et changer rapport à votre nouveau identifier.
+
+<br /><br />
+
+---
+
+<br /><br />
+
+# Changer certaines valeurs dans les scripts "build-scripts/generate-project/"
+- `build-scripts/generate-project/android-unix.sh`: Changer toute les occurence "rc2d-game-template" par le nouveau nom de la target CMake.
+- `build-scripts/generate-project/android-windows.bat` : Changer toute les occurence "rc2d-game-template" par le nouveau nom de la target CMake.
 
 <br /><br />
 
@@ -252,7 +262,7 @@ Dans CMakeLists.txt tu as (modifier si besoin) :
 - APP_COMPANY_NAME (Exemple : CrzGames)
 - APP_GAME_DESCRIPTION (Une description du jeu)
 - APP_LEGAL_COPYRIGHT
-- APP_IOSMACOS_BUILD_VERSION (version : patch.minor.major, gérer par la CI/CD pour staging/production, en local ce base sur la variable d'environnement ou la valeur par défault) 
+- APP_IOSMACOS_BUILD_VERSION
 - APP_IOSMACOS_IDENTIFIER (identifant de l'app iOS/macOS, exemple : com.nomdelacompagny.nomdujeu)
 - APP_IOSMACOS_DEVELOPMENT_TEAM_ID
 - APP_IOS_PROVISIONING_PROFILE_NAME
