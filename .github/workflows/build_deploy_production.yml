@@ -1,4 +1,4 @@
-name: Generate Executable (prod)
+name: Generate Executable and Deploy Bucket S3 (production)
 
 on:
   release:
