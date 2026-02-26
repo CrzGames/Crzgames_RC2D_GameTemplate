@@ -193,11 +193,11 @@ Changer par votre nouveau nom de target de CMake et changer rapport à votre nou
 
 # CI / CD : Changer certaines valeurs dans les variables d'environnement
 `buid_deploy_staging.yml` ET `buid_deploy_production.yml`: 
-- APP_NAME
-- APP_IOSMACOS_IDENTIFIER
-- APP_GAME_DESCRIPTION
-- APP_IOS_PROVISIONING_PROFILE_NAME
-- APP_IOS_PROVISIONING_PROFILE_UUID
+- APP_NAME (dois être le même nom que la target CMake)
+- APP_IOSMACOS_IDENTIFIER (com.mycompagny.nomdujeu)
+- APP_GAME_DESCRIPTION (description du jeu)
+- APP_IOS_PROVISIONING_PROFILE_NAME: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_NAME }} (modifier le secret)
+- APP_IOS_PROVISIONING_PROFILE_UUID: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_UUID }} (modifier le secret)
 - IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_NAMEAPPLICATION_BASE64: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }} (modifier le secret)
 - AWS_ACCESS_KEY_ID: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ACCESS_KEY_ID }} (modifier le secret)
 - AWS_SECRET_ACCESS_KEY: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_SECRET_ACCESS_KEY }} (modifier le secret)
