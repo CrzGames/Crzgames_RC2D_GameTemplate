@@ -199,26 +199,35 @@ if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin") # macOS
   # et pas OpenSSL/.., et que l'include de Linux est déjà organisé comme ça.
   set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/linux/include/include_openssl" CACHE PATH "" FORCE)
   set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/macos/lib/OpenSSL" CACHE PATH "" FORCE)
+  set(OPENSSL_SSL_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/macos/lib/OpenSSL/libssl.a" CACHE FILEPATH "" FORCE)
   set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/macos/lib/OpenSSL/libcrypto.a" CACHE FILEPATH "" FORCE)
 elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS") # iOS
+  # ATTENTION pour iOS :
+  # On utilise aussi l'include de Linux pour iOS, parce que libwebsocket demande un "openssl/.."
+  # et pas OpenSSL/.., et que l'include de Linux est déjà organisé comme ça.
   set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/linux/include/include_openssl" CACHE PATH "" FORCE)
   set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/ios/lib/OpenSSL/arm64-iphoneos" CACHE PATH "" FORCE)
+  set(OPENSSL_SSL_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/ios/lib/OpenSSL/arm64-iphoneos/libssl.a" CACHE FILEPATH "" FORCE)
   set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/ios/lib/OpenSSL/arm64-iphoneos/libcrypto.a" CACHE FILEPATH "" FORCE)
 elseif(WIN32) # Windows
   set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/windows/include/include_openssl" CACHE PATH "" FORCE)
   set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/windows/lib/OpenSSL/${RC2D_ARCH}" CACHE PATH "" FORCE)
+  set(OPENSSL_SSL_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/windows/lib/OpenSSL/${RC2D_ARCH}/libssl.lib" CACHE FILEPATH "" FORCE)
   set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/windows/lib/OpenSSL/${RC2D_ARCH}/libcrypto.lib" CACHE FILEPATH "" FORCE)
 elseif(RC2D_PLATFORM STREQUAL "STEAMRT4") # Steam Deck / Steam Linux
   set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/steamrt4/include/include_openssl" CACHE PATH "" FORCE)
   set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/OpenSSL/${RC2D_ARCH}" CACHE PATH "" FORCE)
+  set(OPENSSL_SSL_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/OpenSSL/${RC2D_ARCH}/libssl.a" CACHE FILEPATH "" FORCE)
   set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/OpenSSL/${RC2D_ARCH}/libcrypto.a" CACHE FILEPATH "" FORCE)
 elseif (UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAMRT4")) # Linux, Raspberry PI 5 etc.
   set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/linux/include/include_openssl" CACHE PATH "" FORCE)
   set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/linux/lib/OpenSSL/${RC2D_ARCH}" CACHE PATH "" FORCE)
+  set(OPENSSL_SSL_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/linux/lib/OpenSSL/${RC2D_ARCH}/libssl.a" CACHE FILEPATH "" FORCE)
   set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/linux/lib/OpenSSL/${RC2D_ARCH}/libcrypto.a" CACHE FILEPATH "" FORCE)
 elseif(ANDROID) # Android
   set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/android/include/include_openssl" CACHE PATH "" FORCE)
   set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/android/lib/openssl/${ANDROID_ABI}" CACHE PATH "" FORCE)
+  set(OPENSSL_SSL_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/android/lib/openssl/${ANDROID_ABI}/libssl.a" CACHE FILEPATH "" FORCE)
   set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/android/lib/openssl/${ANDROID_ABI}/libcrypto.a" CACHE FILEPATH "" FORCE)
 endif()
 
