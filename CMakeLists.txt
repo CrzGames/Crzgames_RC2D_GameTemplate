@@ -331,6 +331,13 @@ target_compile_definitions(${APP_TARGET} PRIVATE
   APP_VERSION="${APP_VERSION_STR}"
 )
 
+# Pour libsodium avec MSVC, on doit définir SODIUM_STATIC pour indiquer qu'on utilise la version statique de la librairie.
+if(MSVC)
+  target_compile_definitions(${APP_TARGET} PUBLIC 
+    SODIUM_STATIC
+  )
+endif()
+
 # ============================================================
 # Output Directories
 # ============================================================
