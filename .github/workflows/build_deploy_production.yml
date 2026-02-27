@@ -379,7 +379,7 @@ jobs:
         if: matrix.config.platform == 'ios'
         run: codesign --verify --deep --verify --verbose=4 build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release-iphoneos/*.app
 
-      - name: Create .ipa package for AppStore - iOS (iphoneos)
+      - name: Create .ipa package for AppStore/TestFlight - iOS (iphoneos)
         if: matrix.config.platform == 'ios'
         run: |
           # Create Payload directory and move .app into it
