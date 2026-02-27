@@ -158,6 +158,71 @@ if(NOT GAME_ENV STREQUAL "dev"
 endif()
 
 # ============================================================
+# Paths
+# ============================================================
+# DEPENDENCIES_PATH : racine de ton dossier dependencies/
+# CRZGAMES_LIBRARIES_PATH: dossier où on ranges les libs précompilées (ffmpeg, openssl, rcenet, onnxruntime, sdl3shadercross, etc.) pour chaque plateforme.
+# ============================================================
+set(DEPENDENCIES_PATH "${CMAKE_CURRENT_SOURCE_DIR}/dependencies")
+set(CRZGAMES_LIBRARIES_PATH "${DEPENDENCIES_PATH}/Crzgames_RC2D/dependencies/Crzgames_Libraries")
+
+# ============================================================
+# libwebsockets - Configuration build
+# ============================================================
+# --- LWS: on veut OpenSSL ---
+set(LWS_WITH_SSL ON  CACHE BOOL "" FORCE)
+
+# Autres options importantes :
+set(LWS_WITH_EXPORT_LWSTARGETS OFF CACHE BOOL "" FORCE)
+
+# Empêcher les backends alternatifs à OpenSSL
+set(LWS_WITH_MBEDTLS   OFF CACHE BOOL "" FORCE)
+set(LWS_WITH_BORINGSSL OFF CACHE BOOL "" FORCE)
+set(LWS_WITH_GNUTLS    OFF CACHE BOOL "" FORCE)
+set(LWS_WITH_WOLFSSL   OFF CACHE BOOL "" FORCE)
+set(LWS_WITH_CYASSL    OFF CACHE BOOL "" FORCE)
+set(LWS_WITH_SCHANNEL  OFF CACHE BOOL "" FORCE)
+
+# Désactiver les exemples et tests (inutile dans un framework)
+set(LWS_WITHOUT_TESTAPPS ON  CACHE BOOL "" FORCE)
+set(LWS_WITH_MINIMAL_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(LWS_WITH_LWSWS OFF CACHE BOOL "" FORCE)
+
+# On veut la lib statique, pas besoin de la dynamique
+set(LWS_WITH_SHARED OFF  CACHE BOOL "" FORCE)
+set(LWS_WITH_STATIC ON CACHE BOOL "" FORCE)
+
+# libwebsockets à besoin des : OPENSSL_INCLUDE_DIR, OPENSSL_ROOT_DIR, OPENSSL_CRYPTO_LIBRARY
+if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin") # macOS
+  # ATTENTION pour macOS : 
+  # On utilise l'include de Linux pour macOS aussi, parce que libwebsocket demande un "openssl/.." 
+  # et pas OpenSSL/.., et que l'include de Linux est déjà organisé comme ça.
+  set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/linux/include/include_openssl" CACHE PATH "" FORCE)
+  set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/macos/lib/OpenSSL" CACHE PATH "" FORCE)
+  set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/macos/lib/OpenSSL/libcrypto.a" CACHE FILEPATH "" FORCE)
+elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS") # iOS
+  set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/linux/include/include_openssl" CACHE PATH "" FORCE)
+  set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/ios/lib/OpenSSL/arm64-iphoneos" CACHE PATH "" FORCE)
+  set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/ios/lib/OpenSSL/arm64-iphoneos/libcrypto.a" CACHE FILEPATH "" FORCE)
+elseif(WIN32) # Windows
+  set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/windows/include/include_openssl" CACHE PATH "" FORCE)
+  set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/windows/lib/OpenSSL/${RC2D_ARCH}" CACHE PATH "" FORCE)
+  set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/windows/lib/OpenSSL/${RC2D_ARCH}/libcrypto.lib" CACHE FILEPATH "" FORCE)
+elseif(RC2D_PLATFORM STREQUAL "STEAMRT4") # Steam Deck / Steam Linux
+  set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/steamrt4/include/include_openssl" CACHE PATH "" FORCE)
+  set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/OpenSSL/${RC2D_ARCH}" CACHE PATH "" FORCE)
+  set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/OpenSSL/${RC2D_ARCH}/libcrypto.a" CACHE FILEPATH "" FORCE)
+elseif (UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAMRT4")) # Linux, Raspberry PI 5 etc.
+  set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/linux/include/include_openssl" CACHE PATH "" FORCE)
+  set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/linux/lib/OpenSSL/${RC2D_ARCH}" CACHE PATH "" FORCE)
+  set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/linux/lib/OpenSSL/${RC2D_ARCH}/libcrypto.a" CACHE FILEPATH "" FORCE)
+elseif(ANDROID) # Android
+  set(OPENSSL_INCLUDE_DIR "${CRZGAMES_LIBRARIES_PATH}/android/include/include_openssl" CACHE PATH "" FORCE)
+  set(OPENSSL_ROOT_DIR "${CRZGAMES_LIBRARIES_PATH}/android/lib/openssl/${ANDROID_ABI}" CACHE PATH "" FORCE)
+  set(OPENSSL_CRYPTO_LIBRARY "${CRZGAMES_LIBRARIES_PATH}/android/lib/openssl/${ANDROID_ABI}/libcrypto.a" CACHE FILEPATH "" FORCE)
+endif()
+
+# ============================================================
 # version.txt (APP_VERSION_STR) — generated file
 # ============================================================
 
@@ -179,16 +244,8 @@ file(GENERATE
 # Ajouter les dépendances vendored pour RC2D, avec add_subdirectory pour que CMake 
 # puisse les compiler et les linker correctement.
 # ============================================================
+add_subdirectory(dependencies/libwebsockets EXCLUDE_FROM_ALL)
 add_subdirectory(dependencies/Crzgames_RC2D EXCLUDE_FROM_ALL)
-
-# ============================================================
-# Paths
-# ============================================================
-# DEPENDENCIES_PATH : racine de ton dossier dependencies/
-# CRZGAMES_LIBRARIES_PATH: dossier où on ranges les libs précompilées (ffmpeg, openssl, rcenet, onnxruntime, sdl3shadercross, etc.) pour chaque plateforme.
-# ============================================================
-set(DEPENDENCIES_PATH "${CMAKE_CURRENT_SOURCE_DIR}/dependencies")
-set(CRZGAMES_LIBRARIES_PATH "${DEPENDENCIES_PATH}/Crzgames_RC2D/dependencies/Crzgames_Libraries")
 
 # ============================================================
 # Fichiers source de l’exécutable
@@ -301,6 +358,85 @@ target_include_directories(${APP_TARGET} PRIVATE
 target_link_libraries(${APP_TARGET} PRIVATE
   rc2d
 )
+
+# ============================================================
+# rcnet_configure_libsodium
+# ============================================================
+function(rcnet_configure_libsodium target_name)
+  if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin") # macOS
+    target_include_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/macos/include/include_libsodium"
+    )
+
+    target_link_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/macos/lib/libsodium"
+    )
+
+    target_link_libraries(${target_name} PUBLIC
+      sodium
+    )
+  elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS") # iOS
+    target_include_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/ios/include/include_libsodium"
+    )
+
+    target_link_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/ios/lib/libsodium/arm64-iphoneos"
+    )
+
+    target_link_libraries(${target_name} PUBLIC 
+      sodium
+    )
+  elseif(WIN32) # Windows
+    target_include_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/windows/include/include_libsodium"
+    )
+
+    target_link_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/windows/lib/libsodium/${RC2D_ARCH}"
+    )
+
+    target_link_libraries(${target_name} PUBLIC
+      libsodium
+    )
+  elseif(RC2D_PLATFORM STREQUAL "STEAMRT4") # Steam Deck / Steam Linux
+    target_include_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/steamrt4/include/include_libsodium"
+    )
+
+    target_link_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/libsodium/${RC2D_ARCH}"
+    )
+
+    target_link_libraries(${target_name} PUBLIC 
+      sodium
+    )
+  elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAMRT4")) # Linux, Raspberry PI 5 etc.
+    target_include_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/linux/include/include_libsodium"
+    )
+
+    target_link_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/linux/lib/libsodium/${RC2D_ARCH}"
+    )
+
+    target_link_libraries(${target_name} PUBLIC 
+      sodium
+    )
+  elseif(ANDROID) # Android
+    target_include_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/android/include/include_libsodium"
+    )
+
+    target_link_directories(${target_name} PUBLIC
+      "${CRZGAMES_LIBRARIES_PATH}/android/lib/libsodium/${ANDROID_ABI}"
+    )
+
+    target_link_libraries(${target_name} PUBLIC 
+      sodium
+    )
+  endif()
+endfunction()
 
 # ============================================================
 # rc2d_configure_ffmpeg

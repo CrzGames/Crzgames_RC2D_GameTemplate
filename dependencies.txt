@@ -1,3 +1,4 @@
 # Format: library=repository:tag ou library=repository:commit_sha
 
-Crzgames_RC2D=https://github.com/CrzGames/Crzgames_RC2D.git:5eed07904b35b3acc3c9b9015e65ba6eda4b32cd
+Crzgames_RC2D=https://github.com/CrzGames/Crzgames_RC2D.git:285aa6232e5a8db1349e4d37894a336c33e945b5
+libwebsockets=https://github.com/warmcat/libwebsockets.git:v4.5.2
