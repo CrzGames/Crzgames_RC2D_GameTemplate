@@ -303,6 +303,51 @@ target_link_libraries(${APP_TARGET} PRIVATE
 )
 
 # ============================================================
+# Windows - Release - VC++ runtime (MSVC /MD)
+# Copie les DLL depuis platforms/windows/vc-redist/<arch>-release
+# ============================================================
+function(rc2d_configure_vc_redist_app_local target_name)
+  if(MSVC)
+    # Base dir dans le repo
+    set(_vc_redist_base "${PROJECT_SOURCE_DIR}/platforms/windows/vc-redist")
+
+    # Choix du dossier selon RC2D_ARCH
+    if(RC2D_ARCH STREQUAL "x64")
+      set(_vc_redist_dir "${_vc_redist_base}/x64-release")
+    elseif(RC2D_ARCH STREQUAL "arm64")
+      set(_vc_redist_dir "${_vc_redist_base}/arm64-release")
+    else()
+      message(FATAL_ERROR "RC2D_ARCH invalide pour Windows: '${RC2D_ARCH}' (attendu: x64 ou arm64)")
+    endif()
+
+    if(NOT EXISTS "${_vc_redist_dir}")
+      message(FATAL_ERROR "VC Redist app-local introuvable: ${_vc_redist_dir}")
+    endif()
+
+    # Liste les DLL à copier (tout le dossier)
+    file(GLOB _vc_dlls "${_vc_redist_dir}/*.dll")
+    if(_vc_dlls STREQUAL "")
+      message(FATAL_ERROR "Aucune DLL trouvée dans: ${_vc_redist_dir}")
+    endif()
+
+    foreach(_dll IN LISTS _vc_dlls)
+      get_filename_component(_dll_name "${_dll}" NAME)
+
+      add_custom_command(TARGET ${target_name} POST_BUILD
+        COMMAND $<$<CONFIG:Release>:${CMAKE_COMMAND}>
+                $<$<CONFIG:Release>:-E>
+                $<$<CONFIG:Release>:copy_if_different>
+                $<$<CONFIG:Release>:${_dll}>
+                $<$<CONFIG:Release>:$<TARGET_FILE_DIR:${target_name}>/${_dll_name}>
+        COMMAND_EXPAND_LISTS
+        COMMENT "Copy VC runtime (app-local) [Release]: ${_dll_name}"
+        VERBATIM
+      )
+    endforeach()
+  endif()
+endfunction()
+
+# ============================================================
 # rc2d_configure_ffmpeg
 #
 # Objectif :
@@ -701,6 +746,10 @@ rc2d_configure_shadercross(${APP_TARGET})
 
 # Configurer la pipeline de compilation des shaders pour s'assurer que shadercross est stage avant la compilation des shaders, et que les shaders sont compilés avant le build de l'application.
 rc2d_configure_shader_pipeline(${APP_TARGET})
+
+# Configurer la copie des runtimes Visual C++ pour Windows, pour que l'exécutable puisse 
+# être lancé sur n'importe quelle machine sans nécessiter une installation préalable des redistribuables Visual C++.
+rc2d_configure_vc_redist_app_local(${APP_TARGET})
 
 # ============================================================
 # Configurations spécifiques à chaque plateforme pour l’exécutable
