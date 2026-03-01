@@ -16,7 +16,7 @@ https://learn.microsoft.com/fr-fr/cpp/windows/latest-supported-vc-redist?view=ms
 
 <br /><br />
 
-## Commande PowerShell pour checker la présence des fichiers des vc_redist installer précédemment (x64) : 
+## Commande PowerShell pour checker la présence des fichiers des vc_redist installer précédemment (x64/arm64/x86) : 
 **INFORMATION** : Les fichiers .dll, finissant par `d` sont SEULEMENT pour les builds en mode `Debug`.
 ```powershell
 Get-ChildItem "$env:WINDIR\System32" -Filter "msvcp140*.dll"
@@ -95,7 +95,7 @@ Mode                 LastWriteTime         Length Name
 
 <br /><br />
 
-## Commande PowerShell pour checker la version des .dll des vc_redist installer précédemment (x64)
+## Commande PowerShell pour checker la version des .dll des vc_redist installer précédemment (x64/arm64/x86)
 ```powershell
 Get-ChildItem "$env:WINDIR\System32\*.dll" -File |
 Where-Object {
@@ -130,9 +130,11 @@ vcruntime140_threads.dll  14.50.35719.0 21/11/2025 22:56:32
 
 <br /><br />
 
-## ✅ Commande PowerShell pour copier les DLL x64 Release vers ce repository :
+## ✅ Commande PowerShell pour copier les DLL (x64/arm64/x86) Release vers ce repository :
 ```powershell
 # Changer le PATH si besoin
+# Pour Windows arm64 via Parellel Desktop macOS, il vaut mieux pas utilisé un dossier partagé avec le macOS il vaut mieux mettre par exemple à : C:\Temp\
+# puis les copier ensuite dans le repository.
 $dest = "C:\Users\Corentin\Desktop\OrganizationCrzGames\Crzgames_RC2D_GameTemplate\platforms\windows\vc-redist\x64-release"
 
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
