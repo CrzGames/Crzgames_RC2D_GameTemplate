@@ -1,5 +1,4 @@
-#ifndef SCENE_MANAGER_H
-#define SCENE_MANAGER_H
+#pragma once
 
 #include <map>
 #include <string>
@@ -28,5 +27,3 @@ public:
     void mousepressed(float x, float y, RC2D_MouseButton button, int clicks, SDL_MouseID mouseID);
     // Ajoutez d'autres callbacks selon les besoins...
 };
-
-#endif // SCENE_MANAGER_H

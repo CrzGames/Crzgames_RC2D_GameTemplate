@@ -1,9 +1,8 @@
-#ifndef SCENE_GAME_H
-#define SCENE_GAME_H
+#pragma once
 
 #include <RC2D/RC2D.h>
 
-#include <amoredtactics/scenes/scene.h>
+#include "scenes/scene.h"
 
 class GameScene : public Scene {
     public:
@@ -14,5 +13,3 @@ class GameScene : public Scene {
         void keypressed(const char *key, SDL_Scancode scancode, SDL_Keycode keycode, SDL_Keymod mod, bool isrepeat, SDL_KeyboardID keyboardID) override;
         void mousepressed(float x, float y, RC2D_MouseButton button, int clicks, SDL_MouseID mouseID) override;
 };
-
-#endif // SCENE_GAME_H

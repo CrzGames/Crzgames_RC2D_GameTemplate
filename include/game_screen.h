@@ -1,5 +1,4 @@
-#ifndef GAME_SCREEN_H
-#define GAME_SCREEN_H
+#pragma once
 
 #include <SDL3/SDL.h>
 
@@ -15,5 +14,3 @@ class GameScreen {
 
         void update(double dt);
 };
-
-#endif // GAME_SCREEN_H

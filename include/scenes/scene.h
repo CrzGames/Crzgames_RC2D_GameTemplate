@@ -1,5 +1,4 @@
-#ifndef SCENE_H
-#define SCENE_H
+#pragma once
 
 #include <RC2D/RC2D.h>
 
@@ -25,5 +24,3 @@ class Scene {
         virtual void mousepressed(float x, float y, RC2D_MouseButton button, int clicks, SDL_MouseID mouseID) = 0;
         // Ajoutez d'autres callbacks selon les besoins...
 };
-
-#endif // SCENE_H
