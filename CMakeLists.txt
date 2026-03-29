@@ -28,23 +28,62 @@ project(rc2d-game-template
 # Toutes les options RC2D_* qui permettent d'activer/désactiver
 # des modules, features ou intégrations SDK.
 # ============================================================
-set(RC2D_EOS_SDK_ENABLED OFF CACHE BOOL "" FORCE)
-set(RC2D_STEAMWORKS_SDK_ENABLED OFF CACHE BOOL "" FORCE)
-set(RC2D_GPU_SHADER_HOT_RELOAD_ENABLED ON CACHE BOOL "" FORCE) # CONSEILLE: Pour la production il est recommandé de le désactiver.
-set(RC2D_MEMORY_DEBUG_ENABLED ON CACHE BOOL "" FORCE) # CONSEILLE: Pour la production il est recommandé de le désactiver.
-set(RC2D_DATA_MODULE_ENABLED ON CACHE BOOL "" FORCE)
-set(RC2D_NET_MODULE_ENABLED ON CACHE BOOL "" FORCE)
-set(RC2D_VIDEO_MODULE_ENABLED ON CACHE BOOL "" FORCE)
-set(RC2D_ONNX_MODULE_ENABLED ON CACHE BOOL "" FORCE)
-set(RC2D_ASSERT_LEVEL 3 CACHE STRING "" FORCE)
-set(RC2D_BUILDING_SHARED OFF CACHE BOOL "" FORCE)
+
+# Toujours désactivé dans un game template
 set(RC2D_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(RC2D_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(RC2D_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+# Le reste : défauts, mais la CI peut override avec -D
+set(RC2D_EOS_SDK_ENABLED OFF CACHE BOOL "")
+set(RC2D_STEAMWORKS_SDK_ENABLED OFF CACHE BOOL "")
+set(RC2D_GPU_SHADER_HOT_RELOAD_ENABLED ON CACHE BOOL "") # CONSEILLE: Pour la production il est recommandé de le désactiver.
+set(RC2D_MEMORY_DEBUG_ENABLED ON CACHE BOOL "")          # CONSEILLE: Pour la production il est recommandé de le désactiver.
+set(RC2D_DATA_MODULE_ENABLED ON CACHE BOOL "")
+set(RC2D_NET_MODULE_ENABLED ON CACHE BOOL "")
+set(RC2D_VIDEO_MODULE_ENABLED ON CACHE BOOL "")
+set(RC2D_ONNX_MODULE_ENABLED ON CACHE BOOL "")
+set(RC2D_ASSERT_LEVEL 3 CACHE STRING "")
+set(RC2D_BUILDING_SHARED OFF CACHE BOOL "")
 
 # ============================================================
 # Build Options Game Template
 # ============================================================
 option(GAME_BUILD_APPLE_CODE_SIGNING "Activer ou désactiver le code signing pour les builds Apple (iOS/macOS)." OFF)
+option(GAME_BUILD_LINUX_APPIMAGE "Activer ou désactiver la génération d'un AppImage pour les builds Linux." OFF)
+
+# ============================================================
+# Compiler Warnings & Strictness
+# ============================================================
+# Flags d'avertissements et de conformité :
+# - MSVC : /W4, /permissive- (C++ strict), désactivations ciblées
+# - GCC/Clang : -Wall -Wextra -pedantic + exceptions ciblées
+# ============================================================
+function(rc2d_game_template_apply_warnings target_name)
+  target_compile_options(${target_name} PRIVATE
+    # MSVC
+    # /W4 : Niveau d'avertissement 4 (equivalent a -Wextra)
+    # /permissive- : Spécifie un mode de compilation strict pour suivre les standards C++ 
+    # /wd4100 : Désactive l'avertissement pour les paramètres de fonction non utilisés (C4100)
+    "$<$<COMPILE_LANG_AND_ID:C,MSVC>:/W4;/wd4100>"
+    "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/W4;/permissive-;/wd4100>"
+
+    # GCC / Clang / AppleClang - C
+    # -Wall : Active tous les avertissements de base
+    # -Wextra : Active des avertissements supplémentaires
+    # -pedantic : Enforce strictement les standards C++
+    # -Wno-unused-parameter : Désactive les avertissements pour les paramètres de fonction non utilisés
+    # -Wno-error=strict-prototypes : Désactive les erreurs pour les prototypes de fonction stricts en C.
+    "$<$<COMPILE_LANG_AND_ID:C,GNU,Clang,AppleClang>:-Wall;-Wextra;-pedantic;-Wno-unused-parameter;-Wno-error=strict-prototypes>"
+
+    # GCC / Clang / AppleClang - C++
+    "$<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-Wall;-Wextra;-pedantic;-Wno-unused-parameter>"
+
+    # Clang-specific: newline at end of file
+    # Clang a un warning spécifique pour les fichiers qui ne se terminent pas par une nouvelle ligne (newline at end of file).
+    # -Wno-newline-eof : Désactive les avertissements pour les nouvelles lignes à la fin du fichier
+    "$<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang>:-Wno-newline-eof>"
+    "$<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:-Wno-newline-eof>"
+  )
+endfunction()
 
 # ============================================================
 # Application Metadata
@@ -55,6 +94,12 @@ option(GAME_BUILD_APPLE_CODE_SIGNING "Activer ou désactiver le code signing pou
 # C'est utiliser pour générer dynamiquement le fichier de ressources Windows (.rc) ou les Info.plist pour Apple, 
 # afin d'inclure ces métadonnées dans l'exécutable final.
 # ============================================================
+
+if(DEFINED ENV{APP_NAME})
+  set(APP_NAME "$ENV{APP_NAME}" CACHE STRING "Nom de l'application")
+else()
+  set(APP_NAME "rc2d-game-template" CACHE STRING "Nom de l'application")
+endif()
 
 # Version "numérique" strict (SemVer) -> pour FILEVERSION/PRODUCTVERSION (Windows) et CFBundleShortVersionString (iOS/macOS).
 if(DEFINED ENV{APP_VERSION_NUMERIC})
@@ -137,6 +182,33 @@ else()
 endif()
 
 # ============================================================
+# Build Environment (dev / staging / production)
+# ============================================================
+set(GAME_ENV "dev" CACHE STRING "Build environment: dev, staging or production")
+set_property(CACHE GAME_ENV PROPERTY STRINGS "dev" "staging" "production")
+if(NOT GAME_ENV STREQUAL "dev"
+   AND NOT GAME_ENV STREQUAL "staging"
+   AND NOT GAME_ENV STREQUAL "production")
+  message(FATAL_ERROR "GAME_ENV invalide: '${GAME_ENV}' (attendu: dev, staging ou production)")
+endif()
+
+# ============================================================
+# version.txt (APP_VERSION_STR) — generated file
+# ============================================================
+
+# Emplacement du fichier généré (gère multi-config VS/Xcode)
+if(CMAKE_GENERATOR MATCHES "Visual Studio|Xcode")
+  set(GENERATED_VERSION_TXT "${CMAKE_BINARY_DIR}/$<CONFIG>/version.txt")
+else()
+  set(GENERATED_VERSION_TXT "${CMAKE_BINARY_DIR}/version.txt")
+endif()
+# Génère le fichier au moment du "generate" CMake (pas au runtime)
+file(GENERATE
+  OUTPUT "${GENERATED_VERSION_TXT}"
+  CONTENT "${APP_VERSION_STR}\n"
+)
+
+# ============================================================
 # Dépendances vendored — add_subdirectory
 # ============================================================
 # Ajouter les dépendances vendored pour RC2D, avec add_subdirectory pour que CMake 
@@ -149,11 +221,9 @@ add_subdirectory(dependencies/Crzgames_RC2D EXCLUDE_FROM_ALL)
 # ============================================================
 # DEPENDENCIES_PATH : racine de ton dossier dependencies/
 # CRZGAMES_LIBRARIES_PATH: dossier où on ranges les libs précompilées (ffmpeg, openssl, rcenet, onnxruntime, sdl3shadercross, etc.) pour chaque plateforme.
-# CRZGAMES_LIBHTTPLIB_PATH : chemin vers le dossier de la bibliothèque cpp-httplib (qui contient les headers de cpp-httplib)
 # ============================================================
 set(DEPENDENCIES_PATH "${CMAKE_CURRENT_SOURCE_DIR}/dependencies")
-set(CRZGAMES_LIBHTTPLIB_PATH "${DEPENDENCIES_PATH}/cpp-httplib")
-set(CRZGAMES_LIBRARIES_PATH "${DEPENDENCIES_PATH}/Crzgames_Libraries")
+set(CRZGAMES_LIBRARIES_PATH "${DEPENDENCIES_PATH}/Crzgames_RC2D/dependencies/Crzgames_Libraries")
 
 # ============================================================
 # Fichiers source de l’exécutable
@@ -198,6 +268,41 @@ else()
   )
 endif()
 
+# Applique les flags de compilation pour les avertissements et la conformité aux standards, en fonction du compilateur utilisé (MSVC, GCC, Clang).
+rc2d_game_template_apply_warnings(${APP_TARGET})
+
+# ============================================================
+# Compile-time environment defines
+# ============================================================
+
+# Environement de build (dev/staging/production) : ajoute des macros préprocesseur pour différencier les builds
+# dans le code source, par exemple pour activer des logs de debug en dev mais pas en production.
+if(GAME_ENV STREQUAL "dev")
+  target_compile_definitions(${APP_TARGET} PRIVATE
+    GAME_ENV_DEV=1
+    GAME_ENV_STAGING=0
+    GAME_ENV_PRODUCTION=0
+  )
+elseif(GAME_ENV STREQUAL "staging")
+  target_compile_definitions(${APP_TARGET} PRIVATE
+    GAME_ENV_DEV=0
+    GAME_ENV_STAGING=1
+    GAME_ENV_PRODUCTION=0
+  )
+else() # production
+  target_compile_definitions(${APP_TARGET} PRIVATE
+    GAME_ENV_DEV=0
+    GAME_ENV_STAGING=0
+    GAME_ENV_PRODUCTION=1
+  )
+endif()
+
+# Ajouter au target compile definitions la version de l'application (APP_VERSION_STR) pour 
+# qu'elle soit accessible dans le code source via une macro préprocesseur, via : APP_VERSION.
+target_compile_definitions(${APP_TARGET} PRIVATE
+  APP_VERSION="${APP_VERSION_STR}"
+)
+
 # ============================================================
 # Output Directories
 # ============================================================
@@ -220,11 +325,9 @@ endif()
 # 
 # Ajoute les dossiers d'inclusion nécessaires pour compiler le projet, notamment :
 # - Le dossier include du projet lui-même (pour les headers locaux)
-# - Le dossier de la bibliothèque cpp-httplib (pour les headers de cpp-httplib)
 # ============================================================
 target_include_directories(${APP_TARGET} PRIVATE
   "${PROJECT_SOURCE_DIR}/include"
-  "${CRZGAMES_LIBHTTPLIB_PATH}"
 )
 
 # ============================================================
@@ -236,6 +339,51 @@ target_include_directories(${APP_TARGET} PRIVATE
 target_link_libraries(${APP_TARGET} PRIVATE
   rc2d
 )
+
+# ============================================================
+# Windows - Release - VC++ runtime (MSVC /MD)
+# Copie les DLL depuis platforms/windows/vc-redist/<arch>-release
+# ============================================================
+function(rc2d_configure_vc_redist_app_local target_name)
+  if(MSVC)
+    # Base dir dans le repo
+    set(_vc_redist_base "${PROJECT_SOURCE_DIR}/platforms/windows/vc-redist")
+
+    # Choix du dossier selon RC2D_ARCH
+    if(RC2D_ARCH STREQUAL "x64")
+      set(_vc_redist_dir "${_vc_redist_base}/x64-release")
+    elseif(RC2D_ARCH STREQUAL "arm64")
+      set(_vc_redist_dir "${_vc_redist_base}/arm64-release")
+    else()
+      message(FATAL_ERROR "RC2D_ARCH invalide pour Windows: '${RC2D_ARCH}' (attendu: x64 ou arm64)")
+    endif()
+
+    if(NOT EXISTS "${_vc_redist_dir}")
+      message(FATAL_ERROR "VC Redist app-local introuvable: ${_vc_redist_dir}")
+    endif()
+
+    # Liste les DLL à copier (tout le dossier)
+    file(GLOB _vc_dlls "${_vc_redist_dir}/*.dll")
+    if(_vc_dlls STREQUAL "")
+      message(FATAL_ERROR "Aucune DLL trouvée dans: ${_vc_redist_dir}")
+    endif()
+
+    foreach(_dll IN LISTS _vc_dlls)
+      get_filename_component(_dll_name "${_dll}" NAME)
+
+      add_custom_command(TARGET ${target_name} POST_BUILD
+        COMMAND $<$<CONFIG:Release>:${CMAKE_COMMAND}>
+                $<$<CONFIG:Release>:-E>
+                $<$<CONFIG:Release>:copy_if_different>
+                $<$<CONFIG:Release>:${_dll}>
+                $<$<CONFIG:Release>:$<TARGET_FILE_DIR:${target_name}>/${_dll_name}>
+        COMMAND_EXPAND_LISTS
+        COMMENT "Copy VC runtime (app-local) [Release]: ${_dll_name}"
+        VERBATIM
+      )
+    endforeach()
+  endif()
+endfunction()
 
 # ============================================================
 # rc2d_configure_ffmpeg
@@ -322,22 +470,30 @@ function(rc2d_configure_onnxruntime target_name)
         "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/onnxruntime/${RC2D_ARCH}/*.so"
         "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/onnxruntime/${RC2D_ARCH}/*.so.*"
       )
-      add_custom_command(TARGET ${target_name} POST_BUILD
-        COMMAND cp -a ${ONNX_SO} "$<TARGET_FILE_DIR:${target_name}>/"
-        COMMENT "Copie des bibliothèques ONNX Runtime avec conservation des liens symboliques"
-        VERBATIM
-      )
+      foreach(FILE IN LISTS ONNX_SO)
+        get_filename_component(FILE_NAME "${FILE}" NAME)
+        add_custom_command(TARGET ${target_name} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                  "${FILE}"
+                  "$<TARGET_FILE_DIR:${target_name}>/${FILE_NAME}"
+          COMMENT "Copy ONNX Runtime: ${FILE_NAME}"
+        )
+      endforeach()
     elseif (UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAMRT4")) # Linux, Raspberry PI 5 etc.
         # Copier aussi les libraries dynamique dans le répertoire de l'exécutable
         file(GLOB_RECURSE ONNX_SO
           "${CRZGAMES_LIBRARIES_PATH}/linux/lib/onnxruntime/${RC2D_ARCH}/*.so"
           "${CRZGAMES_LIBRARIES_PATH}/linux/lib/onnxruntime/${RC2D_ARCH}/*.so.*"
         )
-        add_custom_command(TARGET ${target_name} POST_BUILD
-          COMMAND cp -a ${ONNX_SO} "$<TARGET_FILE_DIR:${target_name}>/"
-          COMMENT "Copie des bibliothèques ONNX Runtime avec conservation des liens symboliques"
-          VERBATIM
-        )
+        foreach(FILE IN LISTS ONNX_SO)
+          get_filename_component(FILE_NAME "${FILE}" NAME)
+          add_custom_command(TARGET ${target_name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${FILE}"
+                    "$<TARGET_FILE_DIR:${target_name}>/${FILE_NAME}"
+            COMMENT "Copy ONNX Runtime: ${FILE_NAME}"
+          )
+        endforeach()
     endif()
   endif()
 endfunction()
@@ -393,32 +549,24 @@ function(rc2d_configure_shadercross target_name)
           COMMENT "Copy shadercross DLL: ${FILE_NAME}"
         )
       endforeach()
-    elseif(RC2D_PLATFORM STREQUAL "STEAMRT4") # Steam Deck / Steam Linux
-      file(GLOB_RECURSE SHADERCROSS_SO
-        "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/SDL3_shadercross/${RC2D_ARCH}/*.so"
-        "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/SDL3_shadercross/${RC2D_ARCH}/*.so.*"
-      )
-      list(FILTER SHADERCROSS_SO EXCLUDE REGEX ".*/libSDL3(\\..*)?\\.so(\\..*)?$") # Exclut les .so SDL3 eux-mêmes pour éviter les doublons et les conflits de version, car elles sont déjà gérés séparément
-
-      # Copier aussi les .so dans le répertoire de l'exécutable
-      add_custom_command(TARGET ${target_name} POST_BUILD
-        COMMAND cp -a ${SHADERCROSS_SO} "$<TARGET_FILE_DIR:${target_name}>/"
-        COMMENT "Copie des bibliothèques SDL3_shadercross avec conservation des liens symboliques"
-        VERBATIM
-      )
-    elseif(UNIX AND NOT APPLE AND NOT ANDROID) # Linux, Raspberry PI 5 etc.    
+    elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAMRT4")) # Linux, Raspberry PI 5 etc. 
       file(GLOB_RECURSE SHADERCROSS_SO
         "${CRZGAMES_LIBRARIES_PATH}/linux/lib/SDL3_shadercross/${RC2D_ARCH}/*.so"
         "${CRZGAMES_LIBRARIES_PATH}/linux/lib/SDL3_shadercross/${RC2D_ARCH}/*.so.*"
       )
       list(FILTER SHADERCROSS_SO EXCLUDE REGEX ".*/libSDL3(\\..*)?\\.so(\\..*)?$") # Exclut les .so SDL3 eux-mêmes pour éviter les doublons et les conflits de version, car elles sont déjà gérés séparément
 
-      # Copier aussi les .so dans le répertoire de l'exécutable
-      add_custom_command(TARGET ${target_name} POST_BUILD
-        COMMAND cp -a ${SHADERCROSS_SO} "$<TARGET_FILE_DIR:${target_name}>/"
-        COMMENT "Copie des bibliothèques SDL3_shadercross avec conservation des liens symboliques"
-        VERBATIM
-      )
+      # Copier aussi les .so dans le répertoire de l'exécutable.
+      # copy_if_different déréférence les liens symboliques -> fichiers réels dans la sortie.
+      foreach(FILE IN LISTS SHADERCROSS_SO)
+        get_filename_component(FILE_NAME "${FILE}" NAME)
+        add_custom_command(TARGET ${target_name} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                  "${FILE}"
+                  "$<TARGET_FILE_DIR:${target_name}>/${FILE_NAME}"
+          COMMENT "Copy shadercross SO: ${FILE_NAME}"
+        )
+      endforeach()
     endif()
   endif()
 endfunction()
@@ -485,19 +633,17 @@ function(rc2d_configure_shader_pipeline target_name)
   # ------------------------------------------------------------
   set(_stage_files "")
 
-  if(WIN32 OR (ANDROID AND CMAKE_HOST_WIN32))
+  if(CMAKE_HOST_WIN32) # Windows, Android-host Windows
     file(GLOB _bins
       "${SHADERCROSS_BIN_DIR}/*.exe"
       "${SHADERCROSS_BIN_DIR}/*.dll"
     )
     list(APPEND _stage_files ${_bins})
-
-  elseif(APPLE OR (ANDROID AND CMAKE_HOST_APPLE))
+  elseif(CMAKE_HOST_APPLE) # macOS/iOS, Android-host macOS
     file(GLOB _bins "${SHADERCROSS_BIN_DIR}/*")
     file(GLOB _dylibs "${SHADERCROSS_LIB_DIR}/*.dylib")
     list(APPEND _stage_files ${_bins} ${_dylibs})
-
-  elseif(RC2D_PLATFORM STREQUAL "STEAMRT4" OR (UNIX AND NOT APPLE AND NOT ANDROID) OR (ANDROID AND CMAKE_HOST_UNIX))
+  elseif(CMAKE_HOST_UNIX) # Linux, SteamRT4, Android-host Linux
     file(GLOB _bins "${SHADERCROSS_BIN_DIR}/*")
     file(GLOB _sos
       "${SHADERCROSS_LIB_DIR}/*.so"
@@ -519,21 +665,37 @@ function(rc2d_configure_shader_pipeline target_name)
   # 3) Target portable : stage_shadercross_tools (stamp file)
   # ------------------------------------------------------------
   set(_stage_stamp "${CMAKE_CURRENT_BINARY_DIR}/stage_shadercross_tools.stamp")
+  if(CMAKE_HOST_WIN32 OR CMAKE_HOST_APPLE) # Windows, macOS/iOS, Android-host Windows/macOS
+    add_custom_command(
+      OUTPUT "${_stage_stamp}"
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_TOOLS_DIR}"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${_stage_files} "${SHADER_TOOLS_DIR}/"
+      COMMAND ${CMAKE_COMMAND} -E touch "${_stage_stamp}"
+      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+      COMMENT "Stage SDL3_shadercross into shaders/tools (before shader compilation)"
+      VERBATIM
+    )
+  else() # Linux, SteamRT4, Android-host Linux
+    # -> copier fichier par fichier sans passer par sh (évite le problème des ';' des listes CMake)
+    set(_copy_script "${CMAKE_CURRENT_BINARY_DIR}/stage_shadercross_copy.cmake")
+    file(WRITE "${_copy_script}" "file(MAKE_DIRECTORY \"${SHADER_TOOLS_DIR}\")\n")
+    foreach(f IN LISTS _stage_files)
+      file(APPEND "${_copy_script}"
+        "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E copy_if_different \"${f}\" \"${SHADER_TOOLS_DIR}/\")\n")
+    endforeach()
 
-  add_custom_command(
-    OUTPUT "${_stage_stamp}"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_TOOLS_DIR}"
-    # Copie toutes les dépendances
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${_stage_files} "${SHADER_TOOLS_DIR}/"
-    # Permissions / rpath si nécessaire
-    COMMAND ${CMAKE_COMMAND} -E touch "${_stage_stamp}"
-    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-    COMMENT "Stage SDL3_shadercross into shaders/tools (before shader compilation)"
-    VERBATIM
-  )
+    add_custom_command(
+      OUTPUT "${_stage_stamp}"
+      COMMAND ${CMAKE_COMMAND} -P "${_copy_script}"
+      COMMAND ${CMAKE_COMMAND} -E touch "${_stage_stamp}"
+      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+      COMMENT "Stage SDL3_shadercross into shaders/tools (before shader compilation)"
+      VERBATIM
+    )
+  endif()
 
   # Ajustements spécifiques (après copie)
-  if(APPLE OR (ANDROID AND CMAKE_HOST_APPLE))
+  if(CMAKE_HOST_APPLE) # macOS/iOS, Android-host macOS
     add_custom_command(
       OUTPUT "${_stage_stamp}.applefix"
       DEPENDS "${_stage_stamp}"
@@ -543,11 +705,12 @@ function(rc2d_configure_shader_pipeline target_name)
       VERBATIM
     )
     add_custom_target(stage_shadercross_tools DEPENDS "${_stage_stamp}.applefix")
-  elseif(UNIX AND NOT WIN32)
+  elseif(CMAKE_HOST_UNIX) # Linux, SteamRT4, Android-host Linux
     add_custom_command(
       OUTPUT "${_stage_stamp}.unixfix"
       DEPENDS "${_stage_stamp}"
       COMMAND chmod +x "${SHADER_TOOLS_DIR}/shadercross" || true
+      COMMAND patchelf --set-rpath '$ORIGIN' "${SHADER_TOOLS_DIR}/shadercross" || true
       COMMAND ${CMAKE_COMMAND} -E touch "${_stage_stamp}.unixfix"
       VERBATIM
     )
@@ -559,7 +722,7 @@ function(rc2d_configure_shader_pipeline target_name)
   # ------------------------------------------------------------
   # 4) Target compile_shaders (dépend du staging)
   # ------------------------------------------------------------
-  if(WIN32)
+  if(CMAKE_HOST_WIN32) # Windows, Android-host Windows
     set(SHADERS_COMPILE_SCRIPT "${SHADERS_SCRIPTS_DIR}/compile-shaders-windows.bat")
     add_custom_target(compile_shaders
       COMMAND "${SHADERS_COMPILE_SCRIPT}"
@@ -567,11 +730,20 @@ function(rc2d_configure_shader_pipeline target_name)
       COMMENT "Compile shaders (Windows)"
       VERBATIM
     )
-  else()
+  elseif(CMAKE_HOST_APPLE) # macOS/iOS, Android-host macOS
     set(SHADERS_COMPILE_SCRIPT "${SHADERS_SCRIPTS_DIR}/compile-shaders-unix.sh")
     add_custom_target(compile_shaders
       COMMAND /bin/chmod +x "${SHADERS_COMPILE_SCRIPT}"
       COMMAND "${SHADERS_COMPILE_SCRIPT}"
+      WORKING_DIRECTORY "${SHADERS_SCRIPTS_DIR}"
+      COMMENT "Compile shaders (Unix)"
+      VERBATIM
+    )
+  elseif(CMAKE_HOST_UNIX) # Linux, SteamRT4, Android-host Linux
+    set(SHADERS_COMPILE_SCRIPT "${SHADERS_SCRIPTS_DIR}/compile-shaders-unix.sh")
+    add_custom_target(compile_shaders
+      COMMAND /bin/chmod +x "${SHADERS_COMPILE_SCRIPT}"
+      COMMAND /bin/sh -c "export LD_LIBRARY_PATH='${SHADER_TOOLS_DIR}':\$\$LD_LIBRARY_PATH; '${SHADERS_COMPILE_SCRIPT}'"
       WORKING_DIRECTORY "${SHADERS_SCRIPTS_DIR}"
       COMMENT "Compile shaders (Unix)"
       VERBATIM
@@ -583,6 +755,40 @@ function(rc2d_configure_shader_pipeline target_name)
   add_dependencies(${target_name} compile_shaders)
 endfunction()
 
+# ============================================================
+# Deploy version.txt per-platform
+# ============================================================
+# 1) Windows / Linux / SteamRT4 : à côté de l'exécutable
+if(NOT ANDROID AND NOT APPLE)
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${GENERATED_VERSION_TXT}"
+            "$<TARGET_FILE_DIR:${APP_TARGET}>/version.txt"
+    COMMENT "Copy version.txt next to executable"
+    VERBATIM
+  )
+endif()
+# 2) macOS : dans .app/Contents/Resources
+if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${GENERATED_VERSION_TXT}"
+            "$<TARGET_BUNDLE_DIR:${APP_TARGET}>/Contents/Resources/version.txt"
+    COMMENT "Embed version.txt into macOS bundle Resources"
+    VERBATIM
+  )
+endif()
+# 3) iOS : dans la racine du bundle .app
+if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${GENERATED_VERSION_TXT}"
+            "$<TARGET_BUNDLE_DIR:${APP_TARGET}>/version.txt"
+    COMMENT "Embed version.txt into iOS app bundle"
+    VERBATIM
+  )
+endif()
+
 # Appeler les fonctions de configuration pour FFmpeg, ONNX Runtime et SDL3_shadercross 
 # pour copier les lib dynamiques nécessaires et configurer les outils de shadercross pour la compilation hors ligne des shaders.
 rc2d_configure_ffmpeg(${APP_TARGET})
@@ -591,6 +797,10 @@ rc2d_configure_shadercross(${APP_TARGET})
 
 # Configurer la pipeline de compilation des shaders pour s'assurer que shadercross est stage avant la compilation des shaders, et que les shaders sont compilés avant le build de l'application.
 rc2d_configure_shader_pipeline(${APP_TARGET})
+
+# Configurer la copie des runtimes Visual C++ pour Windows, pour que l'exécutable puisse 
+# être lancé sur n'importe quelle machine sans nécessiter une installation préalable des redistribuables Visual C++.
+rc2d_configure_vc_redist_app_local(${APP_TARGET})
 
 # ============================================================
 # Configurations spécifiques à chaque plateforme pour l’exécutable
@@ -800,11 +1010,13 @@ elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     COMMENT "Create Contents/Frameworks in app bundle"
   )
 
-  # Copier les .dylib générées dans le dossier Contents/Frameworks du bundle .app
+  # Copier les .dylib générées dans le dossier Contents/Frameworks du bundle .app,
+  # en dereferencant les liens symboliques (-L) pour obtenir uniquement de vrais fichiers.
   set(DYLIB_SOURCE_DIR "${CMAKE_BINARY_DIR}/$<CONFIG>")
   add_custom_command(TARGET ${APP_TARGET} POST_BUILD
-    COMMAND /bin/sh -c "cp -a \"${DYLIB_SOURCE_DIR}\"/*.dylib \"${FRAMEWORKS_DIR}\"/ 2>/dev/null || true"
-    COMMENT "Copy dylibs into Contents/Frameworks (cp -a keeps symlinks)"
+    COMMAND /bin/sh -c "find \"${FRAMEWORKS_DIR}\" -maxdepth 1 -type l -name '*.dylib' -delete 2>/dev/null || true"
+    COMMAND /bin/sh -c "find \"${DYLIB_SOURCE_DIR}\" -maxdepth 1 -name '*.dylib' -exec cp -fL {} \"${FRAMEWORKS_DIR}/\" \\; 2>/dev/null || true"
+    COMMENT "Copy dylibs into Contents/Frameworks (remove symlinks, then copy real files)"
     VERBATIM
   )
 elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
@@ -931,55 +1143,65 @@ elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
     COMMENT "Enable 120Hz ProMotion support"
   )
 elseif(UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAMRT4")) # Linux "classique" (Ubuntu, Debian, Fedora, Arch, etc.) et Raspberry PI 5
-  # Pour l'executable "classique" sur Linux (on ne parle pas de l'AppImage ici, mais rc2d-game-template)
-  set_target_properties(${APP_TARGET} PROPERTIES
-    BUILD_RPATH "\$ORIGIN;\$ORIGIN/usr/lib"
-    INSTALL_RPATH "\$ORIGIN;\$ORIGIN/usr/lib"
-    BUILD_WITH_INSTALL_RPATH TRUE
-  )
+  if(GAME_BUILD_LINUX_APPIMAGE)
+    # Pour l'executable "classique" sur Linux (on ne parle pas de l'AppImage ici, mais rc2d-game-template)
+    set_target_properties(${APP_TARGET} PROPERTIES
+      BUILD_RPATH "\$ORIGIN;\$ORIGIN/usr/lib"
+      INSTALL_RPATH "\$ORIGIN;\$ORIGIN/usr/lib"
+      BUILD_WITH_INSTALL_RPATH TRUE
+    )
 
-  # ------------------------------------------------------------
-  # Arch AppImage depuis RC2D_ARCH
-  # ------------------------------------------------------------
-  if(RC2D_ARCH STREQUAL "x64")
-    set(APPIMAGE_ARCH "x86_64")
-  elseif(RC2D_ARCH STREQUAL "arm64")
-    set(APPIMAGE_ARCH "aarch64")
+    # ------------------------------------------------------------
+    # Arch AppImage depuis RC2D_ARCH
+    # ------------------------------------------------------------
+    if(RC2D_ARCH STREQUAL "x64")
+      set(APPIMAGE_ARCH "x86_64")
+    elseif(RC2D_ARCH STREQUAL "arm64")
+      set(APPIMAGE_ARCH "aarch64")
+    else()
+      message(FATAL_ERROR "RC2D_ARCH invalide: '${RC2D_ARCH}' (attendu: x64 ou arm64)")
+    endif()
+
+    # ------------------------------------------------------------
+    # APPDIR : isolé par arch + build_type (évite collisions)
+    # On le met dans le build tree, pas dans le source tree.
+    # Exemple :
+    #   build/linux/x64/Debug/AppDir
+    #   build/linux/x64/Release/AppDir
+    #   build/linux/arm64/Debug/AppDir
+    #   build/linux/arm64/Release/AppDir
+    # ------------------------------------------------------------
+    set(APPDIR "${CMAKE_BINARY_DIR}/AppDir")
+    set(APPIMAGE_OUTPUT "${CMAKE_BINARY_DIR}/${APP_TARGET}.AppImage")
+
+    install(CODE
+      "include(\"${CMAKE_CURRENT_SOURCE_DIR}/platforms/linux/appimage.cmake\")
+      make_appimage(
+        EXE \"\$<TARGET_FILE:${APP_TARGET}>\"
+        NAME \"${APP_TARGET}\"
+        ICON \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\"
+        DIR_ICON \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\"
+        OUTPUT_NAME \"${APPIMAGE_OUTPUT}\"
+        APP_VERSION \"${APP_VERSION_STR}\"
+        APP_ARCH \"${APPIMAGE_ARCH}\"
+        APPDIR \"${APPDIR}\"
+
+        # 👇 Copie des assets, shaders dans AppDir/ (à côté de l’exe)
+        ASSETS
+          \"${CMAKE_BINARY_DIR}/assets\"
+          \"${CMAKE_BINARY_DIR}/shaders\"
+          \"${CMAKE_BINARY_DIR}/version.txt\"
+      )"
+      COMPONENT Runtime
+    )
   else()
-    message(FATAL_ERROR "RC2D_ARCH invalide: '${RC2D_ARCH}' (attendu: x64 ou arm64)")
+    # Pour les autres cas (Linux "classique" sans AppImage, et Raspberry PI 5), on configure le RPATH à $ORIGIN pour que les .so soient trouvées à l’exécution à côté de l’exécutable.
+    set_target_properties(${APP_TARGET} PROPERTIES
+      BUILD_RPATH "\$ORIGIN"
+      INSTALL_RPATH "\$ORIGIN"
+      BUILD_WITH_INSTALL_RPATH TRUE
+    )
   endif()
-
-  # ------------------------------------------------------------
-  # APPDIR : isolé par arch + build_type (évite collisions)
-  # On le met dans le build tree, pas dans le source tree.
-  # Exemple :
-  #   build/linux/x64/Debug/AppDir
-  #   build/linux/x64/Release/AppDir
-  #   build/linux/arm64/Debug/AppDir
-  #   build/linux/arm64/Release/AppDir
-  # ------------------------------------------------------------
-  set(APPDIR "${CMAKE_BINARY_DIR}/AppDir")
-  set(APPIMAGE_OUTPUT "${CMAKE_BINARY_DIR}/${APP_TARGET}.AppImage")
-
-  install(CODE
-    "include(\"${CMAKE_CURRENT_SOURCE_DIR}/platforms/linux/appimage.cmake\")
-    make_appimage(
-      EXE \"\$<TARGET_FILE:${APP_TARGET}>\"
-      NAME \"${APP_TARGET}\"
-      ICON \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\"
-      DIR_ICON \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\"
-      OUTPUT_NAME \"${APPIMAGE_OUTPUT}\"
-      APP_VERSION \"${APP_VERSION_STR}\"
-      APP_ARCH \"${APPIMAGE_ARCH}\"
-      APPDIR \"${APPDIR}\"
-
-      # 👇 Copie des assets, shaders dans AppDir/ (à côté de l’exe)
-      ASSETS
-        \"${CMAKE_BINARY_DIR}/assets\"
-        \"${CMAKE_BINARY_DIR}/shaders\"
-    )"
-    COMPONENT Runtime
-  )
 elseif(RC2D_PLATFORM STREQUAL "STEAMRT4") # Steam Deck / Steam Linux
   # ============================================================
   # SteamRT4 — Configure RPATH to $ORIGIN
@@ -1069,6 +1291,26 @@ if(UNIX AND NOT APPLE AND NOT ANDROID) # Linux et SteamRT4
   add_custom_command(TARGET ${APP_TARGET} POST_BUILD
     COMMAND chmod +x "$<TARGET_FILE:${APP_TARGET}>"
     COMMENT "Rendre ${APP_TARGET} exécutable"
+    VERBATIM
+  )
+
+  # ---------------------------------------------------------------------------
+  # Package "launcher-friendly" : game_executable/
+  # Objectif :
+  # - Avoir un dossier unique prêt pour le launcher (assets, shaders, binaire, version, .so)
+  # - Garantir 0 symlink dans ce dossier final (cp -fL)
+  # ---------------------------------------------------------------------------
+  set(GAME_EXECUTABLE_DIR "$<TARGET_FILE_DIR:${APP_TARGET}>/game_executable")
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${GAME_EXECUTABLE_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${GAME_EXECUTABLE_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:${APP_TARGET}>" "${GAME_EXECUTABLE_DIR}/$<TARGET_FILE_NAME:${APP_TARGET}>"
+    COMMAND /bin/chmod +x "${GAME_EXECUTABLE_DIR}/$<TARGET_FILE_NAME:${APP_TARGET}>"
+    COMMAND /bin/sh -c "test -f \"$<TARGET_FILE_DIR:${APP_TARGET}>/version.txt\" && cp -f \"$<TARGET_FILE_DIR:${APP_TARGET}>/version.txt\" \"${GAME_EXECUTABLE_DIR}/version.txt\" || true"
+    COMMAND /bin/sh -c "test -d \"$<TARGET_FILE_DIR:${APP_TARGET}>/assets\" && cp -RL \"$<TARGET_FILE_DIR:${APP_TARGET}>/assets\" \"${GAME_EXECUTABLE_DIR}/\" || true"
+    COMMAND /bin/sh -c "test -d \"$<TARGET_FILE_DIR:${APP_TARGET}>/shaders\" && cp -RL \"$<TARGET_FILE_DIR:${APP_TARGET}>/shaders\" \"${GAME_EXECUTABLE_DIR}/\" || true"
+    COMMAND /bin/sh -c "find \"$<TARGET_FILE_DIR:${APP_TARGET}>\" -maxdepth 1 \\( -name '*.so' -o -name '*.so.*' \\) -exec cp -fL {} \"${GAME_EXECUTABLE_DIR}/\" \\; 2>/dev/null || true"
+    COMMENT "Create game_executable package (Linux/SteamRT4, no symlinks)"
     VERBATIM
   )
 endif()

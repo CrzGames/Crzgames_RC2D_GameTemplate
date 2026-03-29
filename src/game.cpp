@@ -1,8 +1,11 @@
-#include <amoredtactics/game.h>
-#include <amoredtactics/game_screen.h>
-#include <amoredtactics/scenes/scene-menu.h>
-#include <amoredtactics/scenes/scene-editormap.h>
-#include <amoredtactics/scenes/scene-manager.h>
+#include "game.h"
+
+#include "game_screen.h"
+#include "scenes/scene-menu.h"
+#include "scenes/scene-editormap.h"
+#include "scenes/scene-manager.h"
+#include "scenes/scene-splashscreen.h"
+#include "scenes/scene-game.h"
 
 SceneManager sceneManager;
 GameScreen gameScreen;
@@ -16,7 +19,9 @@ void rc2d_load(void)
 {
     sceneManager.addScene("menu", new MenuScene());
     sceneManager.addScene("editormap", new EditorMapScene());
-    sceneManager.changeScene("menu");
+    sceneManager.addScene("game", new GameScene());
+    sceneManager.addScene("splashscreen", new SplashScreenScene());
+    sceneManager.changeScene("splashscreen");
 }
 
 void rc2d_update(double dt)

@@ -178,12 +178,22 @@ protected String[] getLibraries() {
 <br /><br />
 
 # Changer certaines valeurs dans les scripts "build-scripts/build-deploy-mobile/"
-- `buid-deploy-mobile/android-unix.sh`: APP_COMPONENT="com.crzgames.testexe/.MyGame"
-- `buid-deploy-mobile/android-windows.sh` : APP_COMPONENT="com.crzgames.testexe/.MyGame"
+- `build-scripts/buid-deploy-mobile/android-unix.sh`: APP_COMPONENT="com.crzgames.testexe/.MyGame"
+- `build-scripts/buid-deploy-mobile/android-windows.bat` : APP_COMPONENT="com.crzgames.testexe/.MyGame"
 Changer par votre nouveau package Android !
 
-- `buid-deploy-mobile/ios.sh`: APP_NAME="rc2d-game-template" et BUNDLE_ID="com.crzgames.testexe"
+- `build-scripts/buid-deploy-mobile/ios.sh`: APP_NAME="rc2d-game-template" et BUNDLE_ID="com.crzgames.testexe"
 Changer par votre nouveau nom de target de CMake et changer rapport à votre nouveau identifier.
+
+<br /><br />
+
+---
+
+<br /><br />
+
+# Changer certaines valeurs dans les scripts "build-scripts/generate-project/"
+- `build-scripts/generate-project/android-unix.sh`: Changer toute les occurence "rc2d-game-template" par le nouveau nom de la target CMake.
+- `build-scripts/generate-project/android-windows.bat` : Changer toute les occurence "rc2d-game-template" par le nouveau nom de la target CMake.
 
 <br /><br />
 
@@ -193,12 +203,18 @@ Changer par votre nouveau nom de target de CMake et changer rapport à votre nou
 
 # CI / CD : Changer certaines valeurs dans les variables d'environnement
 `buid_deploy_staging.yml` ET `buid_deploy_production.yml`: 
-- APP_IOSMACOS_IDENTIFIER
-- APP_GAME_DESCRIPTION
-- APP_IOS_PROVISIONING_PROFILE_NAME
-- APP_IOS_PROVISIONING_PROFILE_UUID
-- IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64
-- Pour le step : `Bundle runtime (SteamRT4) - only executable + .so + assets + shaders`, changer le `./rc2d-game-template` par le nouveau nom de la target CMake.
+- APP_NAME (dois être le même nom que la target CMake)
+- APP_IOSMACOS_IDENTIFIER (com.mycompagny.nomdujeu)
+- APP_GAME_DESCRIPTION (description du jeu)
+- APP_IOS_PROVISIONING_PROFILE_NAME: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_NAME }} (modifier le secret)
+- APP_IOS_PROVISIONING_PROFILE_UUID: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_UUID }} (modifier le secret)
+- IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_NAMEAPPLICATION_BASE64: ${{ secrets.IOS_APPLE_PROVISIONING_PROFILE_APPLEDISTRIBUTION_TESTEXE_BASE64 }} (modifier le secret)
+- AWS_ACCESS_KEY_ID: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ACCESS_KEY_ID }} (modifier le secret)
+- AWS_SECRET_ACCESS_KEY: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_SECRET_ACCESS_KEY }} (modifier le secret)
+- AWS_DEFAULT_REGION: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_REGION }} (modifier le secret)
+- OVH_S3_ENDPOINT: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ENDPOINT }} (modifier le secret)
+- OVH_S3_BUCKET: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_NAME }} (modifier le secret)
+
 
 <br /><br />
 
@@ -240,13 +256,14 @@ Une fois exécuté, tout est régénéré automatiquement pour toutes les platef
 
 Dans CMakeLists.txt tu as (modifier si besoin) :
 
-- APP_VERSION_NUMERIC
-- APP_VERSION_STR
-- APP_COMPANY_NAME  
-- APP_GAME_DESCRIPTION  
-- APP_LEGAL_COPYRIGHT  
-- APP_IOSMACOS_BUILD_VERSION  
-- APP_IOSMACOS_IDENTIFIER  
+- APP_NAME (le nom de la target CMake)
+- APP_VERSION_NUMERIC (version : patch.minor.major, gérer par la CI/CD pour staging/production, en local ce base sur la variable d'environnement ou la valeur par défault)
+- APP_VERSION_STR (version: patch.minor.major-staging-commitshashort, utilise pour staging, pour production ça sera juste : patch.minor.major, gérer par la CI/CD pour staging/production, en local ce base sur la variable d'environnement ou la valeur par défault )
+- APP_COMPANY_NAME (Exemple : CrzGames)
+- APP_GAME_DESCRIPTION (Une description du jeu)
+- APP_LEGAL_COPYRIGHT
+- APP_IOSMACOS_BUILD_VERSION
+- APP_IOSMACOS_IDENTIFIER (identifant de l'app iOS/macOS, exemple : com.nomdelacompagny.nomdujeu)
 - APP_IOSMACOS_DEVELOPMENT_TEAM_ID
 - APP_IOS_PROVISIONING_PROFILE_NAME
 - APP_IOS_PROVISIONING_PROFILE_UUID

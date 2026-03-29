@@ -19,6 +19,12 @@ android {
         targetSdkVersion 36
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toInteger() ?: 1
         versionName (System.getenv("ANDROID_VERSION_NAME") ?: "1.0.0")
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_PLATFORM=android-28", "-DANDROID_STL=c++_static", "-DRC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF"
+                abiFilters 'armeabi-v7a', 'arm64-v8a'
+            }
+        }
     }
     signingConfigs {
         release {
@@ -31,28 +37,15 @@ android {
         }
     }
     buildTypes {
-        debug {
-            externalNativeBuild {
-                cmake {
-                    arguments "-DANDROID_PLATFORM=android-28",
-                              "-DANDROID_STL=c++_static",
-                              "-DRC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF"
-                    abiFilters 'armeabi-v7a', 'arm64-v8a'
-                }
-            }
-        }
-
         release {
+            signingConfig signingConfigs.release
+
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
 
             externalNativeBuild {
                 cmake {
-                    arguments "-DANDROID_PLATFORM=android-28",
-                              "-DANDROID_STL=c++_static",
-                              "-DRC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF",
-                              "-DRC2D_MEMORY_DEBUG_ENABLED=OFF"
-                    abiFilters 'armeabi-v7a', 'arm64-v8a'
+                    arguments "-DRC2D_MEMORY_DEBUG_ENABLED=OFF"
                 }
             }
         }
@@ -134,6 +127,7 @@ android {
             assets {
                 srcDir '../../assets'
                 srcDir "$buildDir/generated/rc2d-shaders"
+                srcDir "$buildDir/generated/rc2d-meta"
             }
         }
     }
@@ -148,11 +142,7 @@ dependencies {
 }
 
 /**
- * Tâche personnalisée pour copier les shaders compilés et de réflexion
- * depuis les exemples vers le dossier de build de l'application.
- *
- * Cette tâche est exécutée avant la compilation pour s'assurer que les
- * shaders sont disponibles dans les assets au moment du build.
+ * Tâche personnalisée pour copier les shaders compilés et de réflexion.
  */
 tasks.register("stageRc2dShaders", Sync) {
     from("../../shaders/compiled") {
@@ -166,4 +156,27 @@ tasks.register("stageRc2dShaders", Sync) {
 }
 tasks.named("preBuild").configure {
     dependsOn("stageRc2dShaders")
+}
+
+/**
+ * Tâche personnalisée pour générer un fichier version.txt contenant la version de l'application.
+ * Ce fichier sera copié à la racine du bundle lors du build.
+ */
+tasks.register("stageRc2dMeta") {
+    doLast {
+        def outDir = file("$buildDir/generated/rc2d-meta")
+        outDir.mkdirs()
+
+        // Priorité : variable d'environnement APP_VERSION_STR
+        def versionStr = System.getenv("APP_VERSION_STR") ?: "1.0.0-staging-commitshashort"
+
+        file("$outDir/version.txt").text = versionStr + "\n"
+
+        println("stageRc2dMeta -> version.txt = ${versionStr}")
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("stageRc2dShaders")
+    dependsOn("stageRc2dMeta")
 }
