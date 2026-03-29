@@ -48,7 +48,7 @@ set(RC2D_BUILDING_SHARED OFF CACHE BOOL "")
 # Build Options Game Template
 # ============================================================
 option(GAME_BUILD_APPLE_CODE_SIGNING "Activer ou désactiver le code signing pour les builds Apple (iOS/macOS)." OFF)
-option(GAME_BUILD_LINUX_APPIMAGE "Activer ou désactiver la génération d'un AppImage pour les builds Linux." ON)
+option(GAME_BUILD_LINUX_APPIMAGE "Activer ou désactiver la génération d'un AppImage pour les builds Linux." OFF)
 
 # ============================================================
 # Compiler Warnings & Strictness
@@ -1291,6 +1291,26 @@ if(UNIX AND NOT APPLE AND NOT ANDROID) # Linux et SteamRT4
   add_custom_command(TARGET ${APP_TARGET} POST_BUILD
     COMMAND chmod +x "$<TARGET_FILE:${APP_TARGET}>"
     COMMENT "Rendre ${APP_TARGET} exécutable"
+    VERBATIM
+  )
+
+  # ---------------------------------------------------------------------------
+  # Package "launcher-friendly" : game_executable/
+  # Objectif :
+  # - Avoir un dossier unique prêt pour le launcher (assets, shaders, binaire, version, .so)
+  # - Garantir 0 symlink dans ce dossier final (cp -fL)
+  # ---------------------------------------------------------------------------
+  set(GAME_EXECUTABLE_DIR "$<TARGET_FILE_DIR:${APP_TARGET}>/game_executable")
+  add_custom_command(TARGET ${APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${GAME_EXECUTABLE_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${GAME_EXECUTABLE_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:${APP_TARGET}>" "${GAME_EXECUTABLE_DIR}/$<TARGET_FILE_NAME:${APP_TARGET}>"
+    COMMAND /bin/chmod +x "${GAME_EXECUTABLE_DIR}/$<TARGET_FILE_NAME:${APP_TARGET}>"
+    COMMAND /bin/sh -c "test -f \"$<TARGET_FILE_DIR:${APP_TARGET}>/version.txt\" && cp -f \"$<TARGET_FILE_DIR:${APP_TARGET}>/version.txt\" \"${GAME_EXECUTABLE_DIR}/version.txt\" || true"
+    COMMAND /bin/sh -c "test -d \"$<TARGET_FILE_DIR:${APP_TARGET}>/assets\" && cp -RL \"$<TARGET_FILE_DIR:${APP_TARGET}>/assets\" \"${GAME_EXECUTABLE_DIR}/\" || true"
+    COMMAND /bin/sh -c "test -d \"$<TARGET_FILE_DIR:${APP_TARGET}>/shaders\" && cp -RL \"$<TARGET_FILE_DIR:${APP_TARGET}>/shaders\" \"${GAME_EXECUTABLE_DIR}/\" || true"
+    COMMAND /bin/sh -c "find \"$<TARGET_FILE_DIR:${APP_TARGET}>\" -maxdepth 1 \\( -name '*.so' -o -name '*.so.*' \\) -exec cp -fL {} \"${GAME_EXECUTABLE_DIR}/\" \\; 2>/dev/null || true"
+    COMMENT "Create game_executable package (Linux/SteamRT4, no symlinks)"
     VERBATIM
   )
 endif()
