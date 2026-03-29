@@ -673,6 +673,7 @@ jobs:
           set -euo pipefail
 
           APP_NAME_SAFE="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
+          MANIFEST_VERSION="v$(echo "$APP_VERSION_STR" | cut -d- -f1)"
 
           map_arch() {
             case "$1" in
@@ -680,6 +681,42 @@ jobs:
               arm64) echo "aarch64" ;;
               *) echo "$1" ;;
             esac
+          }
+
+          generate_manifest() {
+            local local_dir="$1"
+            local version="$2"
+
+            python3 - "$local_dir" "$version" <<'PY'
+          import hashlib, json, pathlib, sys
+
+          root = pathlib.Path(sys.argv[1]).resolve()
+          version = sys.argv[2]
+
+          # sécurité: refuse les symlinks
+          for p in root.rglob("*"):
+              if p.is_symlink():
+                  raise SystemExit(f"Symlink found: {p}")
+
+          files = []
+          for p in sorted([x for x in root.rglob("*") if x.is_file()]):
+              rel = p.relative_to(root).as_posix()
+              if rel == "manifest.json":
+                  continue
+              h = hashlib.sha256()
+              with p.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                      h.update(chunk)
+              files.append({
+                  "name": rel,
+                  "hash": h.hexdigest(),
+                  "size": p.stat().st_size
+              })
+
+          out = root / "manifest.json"
+          out.write_text(json.dumps({"version": version, "files": files}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          print(f"Generated {out} with {len(files)} files")
+          PY
           }
 
           upload_one() {
@@ -694,12 +731,7 @@ jobs:
               return 0
             fi
 
-            # Sécurité: on refuse d'uploader des symlinks
-            if find "$local_dir" -type l | grep -q .; then
-              echo "ERROR: symlinks found in $local_dir"
-              find "$local_dir" -type l
-              exit 1
-            fi
+            generate_manifest "$local_dir" "$MANIFEST_VERSION"
 
             S3_PATH="s3://${OVH_S3_BUCKET}/games/binaries/${APP_NAME_SAFE}/${platform}/${APP_VERSION_STR}/${arch}/"
             echo "Upload $local_dir -> $S3_PATH"
@@ -714,6 +746,4 @@ jobs:
           upload_one "windows-arm64"  "windows"  "arm64"
           upload_one "linux-x64"      "linux"    "x64"
           upload_one "linux-arm64"    "linux"    "arm64"
-          upload_one "steamrt4-x64"   "steamrt4" "x64"
-          upload_one "steamrt4-arm64" "steamrt4" "arm64"
           upload_one "macos-arm64"    "macos"    "arm64"
