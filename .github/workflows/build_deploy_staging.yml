@@ -80,11 +80,11 @@ env:
 
   # Variables d'environnement pour le déploiement sur OVH S3, utilisées pour l'étape de déploiement avec AWS CLI (sync)
   # Même si c'est écrit "AWS_", ce sont en réalité les identifiants d'accès pour le bucket OVH S3, car OVH S3 est compatible avec l'API AWS S3
-  AWS_ACCESS_KEY_ID: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_SECRET_ACCESS_KEY }}
-  AWS_DEFAULT_REGION: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_REGION }}
-  OVH_S3_ENDPOINT: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_ENDPOINT }}
-  OVH_S3_BUCKET: ${{ secrets.AETHERROYALE_S3_BUCKET_OVH_NAME }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.CRZGAMES_STAGING_S3_BUCKET_OVH_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.CRZGAMES_STAGING_S3_BUCKET_OVH_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ${{ secrets.CRZGAMES_STAGING_S3_BUCKET_OVH_REGION }}
+  OVH_S3_ENDPOINT: ${{ secrets.CRZGAMES_STAGING_S3_BUCKET_OVH_ENDPOINT }}
+  OVH_S3_BUCKET: ${{ secrets.CRZGAMES_STAGING_S3_BUCKET_OVH_NAME }}
 
 jobs:
   build_game_and_sign:
@@ -228,12 +228,6 @@ jobs:
         with:
           name: variables-apple
           path: variables-apple.env
-
-      - name: Install dependencies for AppImage - Linux
-        if: matrix.config.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfuse2
 
       - name: Install patchelf - Linux / SteamRT4
         if: matrix.config.platform == 'linux' || matrix.config.platform == 'steamrt4'
@@ -455,11 +449,7 @@ jobs:
           generator: Unix Makefiles
           c-compiler: gcc
           cxx-compiler: g++
-          options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }} RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF GAME_ENV=staging
-
-      - name: CMake Install for generate AppImage - Linux (x64/arm64)
-        if: matrix.config.platform == 'linux'
-        run: cmake --install build-${{ matrix.config.platform }}-${{ matrix.config.arch }}
+          options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }} GAME_BUILD_LINUX_APPIMAGE=OFF RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF GAME_ENV=staging
 
       - name: Configure project with CMake and Run build - SteamRT4 (x64/arm64)
         if: matrix.config.platform == 'steamrt4'
@@ -471,54 +461,6 @@ jobs:
           c-compiler: gcc
           cxx-compiler: g++
           options: CMAKE_BUILD_TYPE=Release RC2D_ARCH=${{ matrix.config.arch }} RC2D_PLATFORM=STEAMRT4 RC2D_GPU_SHADER_HOT_RELOAD_ENABLED=OFF RC2D_MEMORY_DEBUG_ENABLED=OFF GAME_ENV=staging
-
-      - name: Bundle runtime (SteamRT4) - only executable + .so + assets + shaders
-        if: matrix.config.platform == 'steamrt4'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          BUILD_DIR="build-${{ matrix.config.platform }}-${{ matrix.config.arch }}"
-          OUT="bundle-${{ matrix.config.platform }}-${{ matrix.config.arch }}"
-
-          rm -rf "$OUT"
-          mkdir -p "$OUT"
-
-          # 1) Binaire(s) depuis le build dir (mono-config => pas de Release/)
-          # Copie tous les exécutables (perm -111) sauf libs et CMakeFiles.
-          find "$BUILD_DIR" -type f -perm -111 \
-            -not -path "*/CMakeFiles/*" \
-            -not -name "*.so" -not -name "*.so.*" \
-            -exec cp -a {} "$OUT/" \;
-
-          # 2) Data
-          cp -a assets "$OUT/"
-
-          # 3) Shaders: copier puis ne garder que compiled + reflection
-          cp -a shaders "$OUT/"
-          if [ -d "$OUT/shaders" ]; then
-            find "$OUT/shaders" -mindepth 1 -maxdepth 1 \
-              -not -name "compiled" \
-              -not -name "reflection" \
-              -exec rm -rf {} +
-          fi
-
-          # 4) Libs: copie tous les .so / .so.* depuis la racine (comme ton dossier local)
-          find . -maxdepth 1 -type f \( -name "*.so" -o -name "*.so.*" \) \
-            -exec cp -a {} "$OUT/" \;
-
-          # (optionnel) Libs aussi depuis le build dir au cas où
-          find "$BUILD_DIR" -type f \( -name "*.so" -o -name "*.so.*" \) \
-            -exec cp -a {} "$OUT/" \;
-
-          # 5) Supprimer tous les fichiers .awk du bundle
-          find "$OUT" -type f -name "*.awk" -delete
-
-          # 6) Copier le fichier version.txt à la racine du bundle
-          cp -a "$BUILD_DIR/version.txt" "$OUT/"
-
-          echo "=== Bundle content ==="
-          find "$OUT" -maxdepth 3 -print
 
       - name: Configure project with CMake - macOS (arm64)
         if: matrix.config.platform == 'macos'
@@ -583,23 +525,6 @@ jobs:
       - name: Verify the signature and notarization - macOS
         if: matrix.config.platform == 'macos'
         run: spctl --assess --verbose=2 --type exec build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.app
-        
-      - name: Zip the bundle .app for Artificat - macOS
-        if: matrix.config.platform == 'macos'
-        # OBLIGATOIRE de faire ça sinon quand ont l'envoie dans les artifacts sans le zip avec le flag --symlinks
-        # GitHub Actions ne prend pas en compte les symlinks et le .app ne fonctionne pas (error is ambiguous)
-        run: |
-          # Recuperer le nom du fichier .app pour avoir le même nom pour le .zip
-          APP_NAME=$(basename build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.app .app)
-          # Supprimer l'ancien zip
-          rm -f build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.zip
-          # Créer un dossier macos et copier le .app dedans
-          mkdir macos
-          cp -a build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.app macos/
-          # Zip le bundle .app
-          zip -r --symlinks macos/$APP_NAME.zip macos/*.app
-          # Supprimer le bundle .app
-          rm -rf macos/*.app
 
       - name: Archive executable artifacts - Android
         if: matrix.config.platform == 'android'
@@ -624,7 +549,8 @@ jobs:
         with:
           name: ${{ matrix.config.platform }}-${{ matrix.config.arch }}
           retention-days: 1
-          path: macos/*.zip
+          path: |
+            build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release/*.app
 
       - name: Archive executable artifacts - Linux
         if: matrix.config.platform == 'linux'
@@ -633,7 +559,7 @@ jobs:
           name: ${{ matrix.config.platform }}-${{ matrix.config.arch }}
           retention-days: 1
           path: |
-            build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/*.AppImage
+            build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/game_executable/**
 
       - name: Archive executable artifacts - SteamRT4
         if: matrix.config.platform == 'steamrt4'
@@ -642,7 +568,7 @@ jobs:
           name: ${{ matrix.config.platform }}-${{ matrix.config.arch }}
           retention-days: 1
           path: |
-            bundle-${{ matrix.config.platform }}-${{ matrix.config.arch }}/
+            build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/game_executable/**
 
       - name: Archive executable artifacts - Windows
         if: matrix.config.platform == 'windows'
@@ -732,138 +658,15 @@ jobs:
       #    # Tests internes : qa
       #    track: "beta" # Or beta/qa/production
 
-      - name: Organize Artificats for Windows / Linux / SteamRT4 / macOS / iOS
-        if: matrix.platform == 'ubuntu-latest'
-        run: |
-          mkdir -p windows/x64
-          mkdir -p windows/arm64
-          mkdir -p linux/x64
-          mkdir -p linux/arm64
-          mkdir -p macos/arm64
-          mkdir -p ios/arm64-iphoneos
-          mkdir -p steamrt4/x64
-          mkdir -p steamrt4/arm64
-          mv windows-x64/* windows/x64/
-          mv windows-arm64/* windows/arm64/
-          mv linux-x64/*.AppImage linux/x64/
-          mv linux-arm64/*.AppImage linux/arm64/
-          mv steamrt4-x64/* steamrt4/x64/
-          mv steamrt4-arm64/* steamrt4/arm64/
-          mv macos-arm64/*.zip macos/arm64/
-          mv ios-arm64/*.ipa ios/arm64-iphoneos/
-
-      - name: Create distributable zips for OVH S3 - Windows / Linux / SteamRT4 / macOS / iOS / Android
-        if: matrix.platform == 'ubuntu-latest'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          SUFFIX="${APP_VERSION_STR}"
-
-          APP_NAME_SAFE="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
-
-          mkdir -p dist
-          DIST_DIR="$(pwd)/dist"
-
-          zip_dir () {
-            local src="$1"
-            local out_name="$2"
-            ( cd "$src" && zip -ry --symlinks "${DIST_DIR}/${out_name}" . )
-          }
-          zip_dir_with_root () {
-            local src="$1"
-            local out_name="$2"
-            local root="$3"
-
-            rm -rf ".tmp-pack"
-            mkdir -p ".tmp-pack/$root"
-            cp -a "$src"/. ".tmp-pack/$root/"
-
-            ( cd ".tmp-pack" && zip -ry --symlinks "${DIST_DIR}/${out_name}" "$root" )
-            rm -rf ".tmp-pack"
-          }
-
-          # Windows
-          if [ -d "windows/x64" ]; then
-            ZIP_NAME="${APP_NAME_SAFE}-windows-x64-${SUFFIX}.zip"
-            ROOT="${APP_NAME_SAFE}"
-            zip_dir_with_root "windows/x64" "$ZIP_NAME" "$ROOT"
-          fi
-
-          if [ -d "windows/arm64" ]; then
-            ZIP_NAME="${APP_NAME_SAFE}-windows-arm64-${SUFFIX}.zip"
-            ROOT="${APP_NAME_SAFE}"
-            zip_dir_with_root "windows/arm64" "$ZIP_NAME" "$ROOT"
-          fi
-
-          # Linux
-          if [ -d "linux/x64" ]; then
-            zip_dir "linux/x64" "${APP_NAME_SAFE}-linux-x64-${SUFFIX}.zip"
-          fi
-          if [ -d "linux/arm64" ]; then
-            zip_dir "linux/arm64" "${APP_NAME_SAFE}-linux-arm64-${SUFFIX}.zip"
-          fi
-
-          # SteamRT4
-          if [ -d "steamrt4/x64" ]; then
-            ZIP_NAME="${APP_NAME_SAFE}-steamrt4-x64-${SUFFIX}.zip"
-            ROOT="${APP_NAME_SAFE}"
-            zip_dir_with_root "steamrt4/x64" "$ZIP_NAME" "$ROOT"
-          fi
-
-          if [ -d "steamrt4/arm64" ]; then
-            ZIP_NAME="${APP_NAME_SAFE}-steamrt4-arm64-${SUFFIX}.zip"
-            ROOT="${APP_NAME_SAFE}"
-            zip_dir_with_root "steamrt4/arm64" "$ZIP_NAME" "$ROOT"
-          fi
-
-          # macOS : reconstruire un zip qui contient uniquement le .app à la racine
-          if ls macos/arm64/*.zip >/dev/null 2>&1; then
-            rm -rf tmp-macos
-            mkdir -p tmp-macos
-
-            MAC_ZIP="$(ls macos/arm64/*.zip | head -n 1)"
-            unzip -q "$MAC_ZIP" -d tmp-macos
-
-            # trouver le .app (où qu'il soit dans le zip)
-            APP_PATH="$(find tmp-macos -maxdepth 4 -type d -name '*.app' | head -n 1)"
-            if [ -z "${APP_PATH:-}" ]; then
-              echo "No .app found inside $MAC_ZIP"
-              exit 1
-            fi
-
-            rm -f "dist/${APP_NAME_SAFE}-macos-arm64-${SUFFIX}.zip"
-            ( cd "$(dirname "$APP_PATH")" && zip -qry --symlinks "${DIST_DIR}/${APP_NAME_SAFE}-macos-arm64-${SUFFIX}.zip" "$(basename "$APP_PATH")" )
-
-            rm -rf tmp-macos
-          fi
-
-          # iOS : zip sans arch
-          if ls ios/arm64-iphoneos/*.ipa >/dev/null 2>&1; then
-            rm -rf tmp-ios
-            mkdir -p tmp-ios
-            cp -a ios/arm64-iphoneos/*.ipa tmp-ios/
-            ( cd tmp-ios && zip -ry --symlinks "${DIST_DIR}/${APP_NAME_SAFE}-ios-${SUFFIX}.zip" . )
-            rm -rf tmp-ios
-          fi
-
-          # Android : zip sans arch (si artifact android présent)
-          if [ -d "android" ]; then
-            zip_dir "android" "${APP_NAME_SAFE}-android-${SUFFIX}.zip"
-          fi
-
-          echo "=== dist ==="
-          ls -lah dist
-
       - name: Install AWS CLI for deploy on OVH S3
         if: matrix.platform == 'ubuntu-latest'
         run: |
           python -m pip install --upgrade pip
           pip install awscli
 
-      # Deploie sur un bucket S3 les fichiers du jeu
-      # Pour chaque plateforme (Windows, Linux, macOS, SteamRT4, Android, IOS)
-      - name: Upload zips to OVH S3 (Games binaries) - Windows / Linux / SteamRT4 / macOS / iOS / Android
+      # Deploie sur un bucket S3 les fichiers du jeu (executables, assets, etc.) 
+      # pour le launcher interne de CRZ Games (distribué en dehors des stores officiels comme Steam, Play Store, App Store, etc.)
+      - name: Upload game binaries to OVH S3 - Windows / Linux / macOS
         if: matrix.platform == 'ubuntu-latest'
         shell: bash
         run: |
@@ -871,9 +674,46 @@ jobs:
 
           APP_NAME_SAFE="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
 
-          BRANCH_NAME="${GITHUB_REF_NAME}"
-          BRANCH_SAFE="$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
+          map_arch() {
+            case "$1" in
+              x64) echo "x86_64" ;;
+              arm64) echo "aarch64" ;;
+              *) echo "$1" ;;
+            esac
+          }
 
-          aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
-            "dist/" "s3://$OVH_S3_BUCKET/gameclient-${APP_NAME_SAFE}/binaries/${BRANCH_SAFE}/${APP_VERSION_STR}/" \
-            --delete
+          upload_one() {
+            local local_dir="$1"
+            local platform="$2"
+            local arch_raw="$3"
+            local arch
+            arch="$(map_arch "$arch_raw")"
+
+            if [ ! -d "$local_dir" ]; then
+              echo "Skip: $local_dir absent"
+              return 0
+            fi
+
+            # Sécurité: on refuse d'uploader des symlinks
+            if find "$local_dir" -type l | grep -q .; then
+              echo "ERROR: symlinks found in $local_dir"
+              find "$local_dir" -type l
+              exit 1
+            fi
+
+            S3_PATH="s3://${OVH_S3_BUCKET}/games/binaries/${APP_NAME_SAFE}/${platform}/${APP_VERSION_STR}/${arch}/"
+            echo "Upload $local_dir -> $S3_PATH"
+
+            aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
+              "${local_dir}/" "${S3_PATH}" \
+              --no-follow-symlinks \
+              --only-show-errors
+          }
+
+          upload_one "windows-x64"    "windows"  "x64"
+          upload_one "windows-arm64"  "windows"  "arm64"
+          upload_one "linux-x64"      "linux"    "x64"
+          upload_one "linux-arm64"    "linux"    "arm64"
+          upload_one "steamrt4-x64"   "steamrt4" "x64"
+          upload_one "steamrt4-arm64" "steamrt4" "arm64"
+          upload_one "macos-arm64"    "macos"    "arm64"
