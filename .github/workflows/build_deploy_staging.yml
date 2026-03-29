@@ -310,7 +310,7 @@ jobs:
           mv android-project/app/build/outputs/apk/release/app-release.apk "android/apk/${APP_NAME_SAFE}.apk"
           mv android-project/app/build/outputs/bundle/release/app-release.aab "android/aab/${APP_NAME_SAFE}.aab"
           
-      - name: Install the Apple Certificate and Provisioning Profile (Apple Distribution) - AppStore / TestFlight - iOS
+      - name: Install the Apple Certificate and Provisioning Profile (Apple Distribution) - TestFlight - iOS
         if: matrix.config.platform == 'ios'
         run: |
           # create variables
@@ -390,7 +390,7 @@ jobs:
         if: matrix.config.platform == 'ios'
         run: codesign --verify --deep --verify --verbose=4 build-${{ matrix.config.platform }}-${{ matrix.config.arch }}/Release-iphoneos/*.app
 
-      - name: Create .ipa package for AppStore/TestFlight - iOS (iphoneos)
+      - name: Create .ipa package for TestFlight - iOS (iphoneos)
         if: matrix.config.platform == 'ios'
         run: |
           # Create Payload directory and move .app into it
