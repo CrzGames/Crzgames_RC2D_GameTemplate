@@ -470,22 +470,30 @@ function(rc2d_configure_onnxruntime target_name)
         "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/onnxruntime/${RC2D_ARCH}/*.so"
         "${CRZGAMES_LIBRARIES_PATH}/steamrt4/lib/onnxruntime/${RC2D_ARCH}/*.so.*"
       )
-      add_custom_command(TARGET ${target_name} POST_BUILD
-        COMMAND cp -a ${ONNX_SO} "$<TARGET_FILE_DIR:${target_name}>/"
-        COMMENT "Copie des bibliothèques ONNX Runtime avec conservation des liens symboliques"
-        VERBATIM
-      )
+      foreach(FILE IN LISTS ONNX_SO)
+        get_filename_component(FILE_NAME "${FILE}" NAME)
+        add_custom_command(TARGET ${target_name} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                  "${FILE}"
+                  "$<TARGET_FILE_DIR:${target_name}>/${FILE_NAME}"
+          COMMENT "Copy ONNX Runtime: ${FILE_NAME}"
+        )
+      endforeach()
     elseif (UNIX AND NOT APPLE AND NOT ANDROID AND NOT (RC2D_PLATFORM STREQUAL "STEAMRT4")) # Linux, Raspberry PI 5 etc.
         # Copier aussi les libraries dynamique dans le répertoire de l'exécutable
         file(GLOB_RECURSE ONNX_SO
           "${CRZGAMES_LIBRARIES_PATH}/linux/lib/onnxruntime/${RC2D_ARCH}/*.so"
           "${CRZGAMES_LIBRARIES_PATH}/linux/lib/onnxruntime/${RC2D_ARCH}/*.so.*"
         )
-        add_custom_command(TARGET ${target_name} POST_BUILD
-          COMMAND cp -a ${ONNX_SO} "$<TARGET_FILE_DIR:${target_name}>/"
-          COMMENT "Copie des bibliothèques ONNX Runtime avec conservation des liens symboliques"
-          VERBATIM
-        )
+        foreach(FILE IN LISTS ONNX_SO)
+          get_filename_component(FILE_NAME "${FILE}" NAME)
+          add_custom_command(TARGET ${target_name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${FILE}"
+                    "$<TARGET_FILE_DIR:${target_name}>/${FILE_NAME}"
+            COMMENT "Copy ONNX Runtime: ${FILE_NAME}"
+          )
+        endforeach()
     endif()
   endif()
 endfunction()
@@ -548,12 +556,17 @@ function(rc2d_configure_shadercross target_name)
       )
       list(FILTER SHADERCROSS_SO EXCLUDE REGEX ".*/libSDL3(\\..*)?\\.so(\\..*)?$") # Exclut les .so SDL3 eux-mêmes pour éviter les doublons et les conflits de version, car elles sont déjà gérés séparément
 
-      # Copier aussi les .so dans le répertoire de l'exécutable
-      add_custom_command(TARGET ${target_name} POST_BUILD
-        COMMAND cp -a ${SHADERCROSS_SO} "$<TARGET_FILE_DIR:${target_name}>/"
-        COMMENT "Copie des bibliothèques SDL3_shadercross avec conservation des liens symboliques"
-        VERBATIM
-      )
+      # Copier aussi les .so dans le répertoire de l'exécutable.
+      # copy_if_different déréférence les liens symboliques -> fichiers réels dans la sortie.
+      foreach(FILE IN LISTS SHADERCROSS_SO)
+        get_filename_component(FILE_NAME "${FILE}" NAME)
+        add_custom_command(TARGET ${target_name} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                  "${FILE}"
+                  "$<TARGET_FILE_DIR:${target_name}>/${FILE_NAME}"
+          COMMENT "Copy shadercross SO: ${FILE_NAME}"
+        )
+      endforeach()
     endif()
   endif()
 endfunction()
@@ -997,11 +1010,13 @@ elseif (APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     COMMENT "Create Contents/Frameworks in app bundle"
   )
 
-  # Copier les .dylib générées dans le dossier Contents/Frameworks du bundle .app
+  # Copier les .dylib générées dans le dossier Contents/Frameworks du bundle .app,
+  # en dereferencant les liens symboliques (-L) pour obtenir uniquement de vrais fichiers.
   set(DYLIB_SOURCE_DIR "${CMAKE_BINARY_DIR}/$<CONFIG>")
   add_custom_command(TARGET ${APP_TARGET} POST_BUILD
-    COMMAND /bin/sh -c "cp -a \"${DYLIB_SOURCE_DIR}\"/*.dylib \"${FRAMEWORKS_DIR}\"/ 2>/dev/null || true"
-    COMMENT "Copy dylibs into Contents/Frameworks (cp -a keeps symlinks)"
+    COMMAND /bin/sh -c "find \"${FRAMEWORKS_DIR}\" -maxdepth 1 -type l -name '*.dylib' -delete 2>/dev/null || true"
+    COMMAND /bin/sh -c "find \"${DYLIB_SOURCE_DIR}\" -maxdepth 1 -name '*.dylib' -exec cp -fL {} \"${FRAMEWORKS_DIR}/\" \\; 2>/dev/null || true"
+    COMMENT "Copy dylibs into Contents/Frameworks (remove symlinks, then copy real files)"
     VERBATIM
   )
 elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
