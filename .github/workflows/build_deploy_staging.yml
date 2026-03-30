@@ -682,7 +682,19 @@ jobs:
           set -euo pipefail
 
           APP_NAME_SAFE="$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g')"
-          MANIFEST_VERSION="v$(echo "$APP_VERSION_STR" | cut -d- -f1)"
+
+          # Exemples:
+          # v1.0.0-staging-abc123 -> v1.0.0
+          # 1.0.0-staging-abc123  -> v1.0.0
+          # v1.0.0                -> v1.0.0
+          APP_VERSION_BASE="$(echo "${APP_VERSION_STR}" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/v\1/')"
+
+          if ! [[ "$APP_VERSION_BASE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid APP_VERSION_STR: $APP_VERSION_STR"
+            exit 1
+          fi
+
+          MANIFEST_VERSION="$APP_VERSION_BASE"
 
           map_arch() {
             case "$1" in
@@ -742,7 +754,7 @@ jobs:
 
             generate_manifest "$local_dir" "$MANIFEST_VERSION"
 
-            S3_PATH="s3://${OVH_S3_BUCKET}/games/binaries/${APP_NAME_SAFE}/${platform}/${APP_VERSION_STR}/${arch}/"
+            S3_PATH="s3://${OVH_S3_BUCKET}/games/binaries/${APP_NAME_SAFE}/${platform}/${APP_VERSION_BASE}/${arch}/"
             echo "Upload $local_dir -> $S3_PATH"
 
             aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
