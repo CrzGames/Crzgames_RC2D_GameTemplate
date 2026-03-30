@@ -1299,7 +1299,15 @@ if(UNIX AND NOT APPLE AND NOT ANDROID) # Linux et SteamRT4
   # Objectif :
   # - Avoir un dossier unique prêt pour le launcher (assets, shaders, binaire, version, .so)
   # - Garantir 0 symlink dans ce dossier final (cp -fL)
+  # - Générer un fichier .desktop prêt à l'emploi pour Linux/SteamRT4
   # ---------------------------------------------------------------------------
+  set(APP_EXECUTABLE_NAME "${APP_TARGET}")
+  set(LINUX_DESKTOP_TEMPLATE "${PROJECT_SOURCE_DIR}/platforms/linux/game.desktop.in")
+  set(LINUX_DESKTOP_GENERATED "${CMAKE_CURRENT_BINARY_DIR}/${APP_NAME}.desktop")
+  if(EXISTS "${LINUX_DESKTOP_TEMPLATE}")
+    configure_file("${LINUX_DESKTOP_TEMPLATE}" "${LINUX_DESKTOP_GENERATED}" @ONLY)
+  endif()
+
   set(GAME_EXECUTABLE_DIR "$<TARGET_FILE_DIR:${APP_TARGET}>/game_executable")
   add_custom_command(TARGET ${APP_TARGET} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E rm -rf "${GAME_EXECUTABLE_DIR}"
@@ -1310,6 +1318,9 @@ if(UNIX AND NOT APPLE AND NOT ANDROID) # Linux et SteamRT4
     COMMAND /bin/sh -c "test -d \"$<TARGET_FILE_DIR:${APP_TARGET}>/assets\" && cp -RL \"$<TARGET_FILE_DIR:${APP_TARGET}>/assets\" \"${GAME_EXECUTABLE_DIR}/\" || true"
     COMMAND /bin/sh -c "test -d \"$<TARGET_FILE_DIR:${APP_TARGET}>/shaders\" && cp -RL \"$<TARGET_FILE_DIR:${APP_TARGET}>/shaders\" \"${GAME_EXECUTABLE_DIR}/\" || true"
     COMMAND /bin/sh -c "find \"$<TARGET_FILE_DIR:${APP_TARGET}>\" -maxdepth 1 \\( -name '*.so' -o -name '*.so.*' \\) -exec cp -fL {} \"${GAME_EXECUTABLE_DIR}/\" \\; 2>/dev/null || true"
+    COMMAND /bin/sh -c "if [ -f \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\" ]; then cp -f \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon.png\" \"${GAME_EXECUTABLE_DIR}/app-icon.png\"; elif [ -f \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon-256x256.png\" ]; then cp -f \"${PROJECT_SOURCE_DIR}/icons/linux/app-icon-256x256.png\" \"${GAME_EXECUTABLE_DIR}/app-icon.png\"; fi"
+    COMMAND /bin/sh -c "test -f \"${LINUX_DESKTOP_GENERATED}\" && cp -f \"${LINUX_DESKTOP_GENERATED}\" \"${GAME_EXECUTABLE_DIR}/${APP_NAME}.desktop\" || true"
+    COMMAND /bin/chmod +x "${GAME_EXECUTABLE_DIR}/${APP_NAME}.desktop"
     COMMENT "Create game_executable package (Linux/SteamRT4, no symlinks)"
     VERBATIM
   )
