@@ -724,6 +724,7 @@ jobs:
 
             aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
               "${local_dir}/" "${S3_PATH}" \
+              --delete \
               --no-follow-symlinks \
               --only-show-errors
           }
@@ -745,6 +746,7 @@ jobs:
 
             aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
               "${local_dir}/" "${S3_PATH}" \
+              --delete \
               --no-follow-symlinks \
               --only-show-errors
           }
