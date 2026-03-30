@@ -675,7 +675,7 @@ jobs:
 
       # Deploie sur un bucket S3 les fichiers du jeu (executables, assets, etc.) 
       # pour le launcher interne de CRZ Games (distribué en dehors des stores officiels comme Steam, Play Store, App Store, etc.)
-      - name: Upload game binaries to OVH S3 - Windows / Linux / macOS
+      - name: Upload game binaries to OVH S3 - Windows / Linux / macOS / SteamRT4 / iOS / Android
         if: matrix.platform == 'ubuntu-latest'
         shell: bash
         run: |
@@ -740,7 +740,7 @@ jobs:
           PY
           }
 
-          upload_one() {
+          upload_arch_dir() {
             local local_dir="$1"
             local platform="$2"
             local arch_raw="$3"
@@ -763,8 +763,39 @@ jobs:
               --only-show-errors
           }
 
-          upload_one "windows-x64"    "windows"  "x64"
-          upload_one "windows-arm64"  "windows"  "arm64"
-          upload_one "linux-x64"      "linux"    "x64"
-          upload_one "linux-arm64"    "linux"    "arm64"
-          upload_one "macos-arm64"    "macos"    "arm64"
+          upload_named_dir() {
+            local local_dir="$1"
+            local platform="$2"
+            local folder_name="$3"
+
+            if [ ! -d "$local_dir" ]; then
+              echo "Skip: $local_dir absent"
+              return 0
+            fi
+
+            generate_manifest "$local_dir" "$MANIFEST_VERSION"
+
+            S3_PATH="s3://${OVH_S3_BUCKET}/games/binaries/${APP_NAME_SAFE}/${platform}/${APP_VERSION_BASE}/${folder_name}/"
+            echo "Upload $local_dir -> $S3_PATH"
+
+            aws --endpoint-url "$OVH_S3_ENDPOINT" s3 sync \
+              "${local_dir}/" "${S3_PATH}" \
+              --no-follow-symlinks \
+              --only-show-errors
+          }
+
+          # Windows / Linux / SteamRT4 / macOS => format vX.X.X/arch/
+          upload_arch_dir "windows-x64"    "windows"  "x64"
+          upload_arch_dir "windows-arm64"  "windows"  "arm64"
+          upload_arch_dir "linux-x64"      "linux"    "x64"
+          upload_arch_dir "linux-arm64"    "linux"    "arm64"
+          upload_arch_dir "steamrt4-x64"   "steamrt4" "x64"
+          upload_arch_dir "steamrt4-arm64" "steamrt4" "arm64"
+          upload_arch_dir "macos-arm64"    "macos"    "arm64"
+
+          # Android => format vX.X.X/apk/ et vX.X.X/aab/
+          upload_named_dir "android/apk"   "android"  "apk"
+          upload_named_dir "android/aab"   "android"  "aab"
+
+          # iOS => format vX.X.X/ios-arm64-iphoneos/
+          upload_named_dir "ios-arm64"     "ios"      "ios-arm64-iphoneos"
